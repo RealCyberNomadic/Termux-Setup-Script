@@ -19,10 +19,10 @@ main_menu() {
       2 "Full Installation + Plugins" \
       3 "Wipe All Packages (Danger!)" \
       4 "Radare2 Suite" \
-      5 "Open (Themes)" \
+      5 "Termiux Themes" \
       6 "Restore Termux Environment" \
       7 "Backup Termux Environment" \
-      8 "Install Blutter" \
+      8 "Blutter Suite" \
       9 "Exit Script" \
       3>&1 1>&2 2>&3)
 
@@ -203,7 +203,7 @@ submenu() {
       B "T-Header Theme" \
       C "Random Theme" \
       D "Zsh Theme (Powerlevel10k)" \
-      E "Zsh Add-ons" \
+      E "AutoSuggestions + Highlighting Add-ons" \
       F "Install Termux-os" \
       G "Return to Main Menu" \
       3>&1 1>&2 2>&3)
