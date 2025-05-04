@@ -9,11 +9,6 @@ CYAN='\033[1;36m'
 BLUE='\033[1;34m'
 NC='\033[0m'
 
-# =========[ Display Banner ]=========
-banner() {
-  echo -e "${CYAN}Welcome to Termux Setup Script${NC}"
-}
-
 # =========[ Check and Enable Termux Storage ]=========
 check_termux_storage() {
   if [ ! -d "$HOME/storage" ]; then
@@ -35,8 +30,8 @@ main_menu() {
       6 "Open (Themes)" \
       7 "Restore Termux Environment" \
       8 "Backup Termux Environment" \
-      9 "Exit Script" \
-      10 "Install Blutter" \
+      9 "Install Blutter" \
+      10 "Exit Script" \
       3>&1 1>&2 2>&3)
 
     clear
@@ -116,10 +111,6 @@ main_menu() {
         tar -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
         ;;
       9)
-        echo -e "${GREEN}Exiting to Termux...${NC}"
-        exit 0
-        ;;
-      10)
         echo -e "${CYAN}[+] Installing Blutter...${NC}"
         cd $HOME
         pkg update -y && pkg upgrade -y
@@ -141,6 +132,10 @@ main_menu() {
         echo -e "${YELLOW}Press any key to return to the menu...${NC}"
         read -n 1 -s
         ;;
+      10)
+        echo -e "${GREEN}Exiting to Termux...${NC}"
+        exit 0
+        ;;
       *)
         echo -e "${RED}Invalid input. Please choose between 1 - 10.${NC}"
         sleep 2
@@ -160,7 +155,7 @@ submenu() {
       C "Random Theme" \
       D "Zsh Theme (Powerlevel10k)" \
       E "AutoSuggestions + Highlighting Add-ons" \
-      F "Remove Themes" \
+      F "Install Termux-os" \
       G "Return to Main Menu" \
       3>&1 1>&2 2>&3)
 
@@ -203,8 +198,11 @@ submenu() {
         sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
         ;;
       F|f)
-        echo -e "${CYAN}Removing All Themes...${NC}"
-        rm -rf ~/.termux ~/.zshrc ~/.bashrc
+        echo -e "${CYAN}Installing Termux-os...${NC}"
+        cd $HOME
+        git clone https://github.com/h4ck3r0/Termux-os
+        cd Termux-os
+        bash os.sh
         ;;
       G|g)
         return
