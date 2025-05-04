@@ -19,7 +19,7 @@ main_menu() {
       2 "Full Installation + Plugins" \
       3 "Wipe All Packages (Danger!)" \
       4 "Radare2 Suite" \
-      5 "Termiux Themes" \
+      5 "Termux Themes" \
       6 "Restore Termux Environment" \
       7 "Backup Termux Environment" \
       8 "Blutter Suite" \
