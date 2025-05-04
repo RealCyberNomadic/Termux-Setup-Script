@@ -20,8 +20,8 @@ The Termux Setup Script is designed to automate the setup and configuration of e
   <pre><code id="cmd2">cd Termux-Setup-Script</code></pre>
   <button onclick="copyToClipboard('cmd2')">Copy</button>
 
-  <pre><code id="cmd3">chmod +x termux-setup-script.sh</code></pre>
+  <pre><code id="cmd3">chmod +x Termux-Setup-Script.sh</code></pre>
   <button onclick="copyToClipboard('cmd3')">Copy</button>
 
-  <pre><code id="cmd4">./termux-setup-script.sh</code></pre>
+  <pre><code id="cmd4">bash ./Termux-Setup-Script.sh</code></pre>
   <button onclick="copyToClipboard('cmd4')">
