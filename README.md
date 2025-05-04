@@ -11,29 +11,17 @@ The Termux Setup Script is designed to automate the setup and configuration of e
 - Environment restoration and backup: Allows users to easily restore or backup their Termux environment.
 - Simplified setup process: Removes unnecessary options and streamlines the user experience for easy configuration.
 
-### Installation Instructions
+  <h2>Termux Setup Script</h2>
+  <p>Copy each command separately by clicking on it:</p>
 
-To use the Termux Setup Script, follow these steps:
+  <pre><code id="cmd1">git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git</code></pre>
+  <button onclick="copyToClipboard('cmd1')">Copy</button>
 
-1. **Clone the repository**:
-   Open your Termux terminal and run the following command to clone the repository:
+  <pre><code id="cmd2">cd Termux-Setup-Script</code></pre>
+  <button onclick="copyToClipboard('cmd2')">Copy</button>
 
-   git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git
+  <pre><code id="cmd3">chmod +x termux-setup-script.sh</code></pre>
+  <button onclick="copyToClipboard('cmd3')">Copy</button>
 
-2. **Navigate to the cloned directory**:
-   Move into the `Termux-Setup-Script` directory:
-
-   cd Termux-Setup-Script
-
-3. **Make the script executable**:
-   Run this command to give the script permission to be executed:
-
-   chmod +x termux-setup-script.sh
-
-4. **Run the script**:
-   Finally, execute the script with the following command:
-
-   ./termux-setup-script.sh
-
-5. **Follow the on-screen menu**:
-   After running the script, you’ll be presented with a menu that allows you to choose from various setup options (e.g., install packages, manage backups, install Blutter, etc.).
+  <pre><code id="cmd4">./termux-setup-script.sh</code></pre>
+  <button onclick="copyToClipboard('cmd4')">
