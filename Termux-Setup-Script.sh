@@ -9,6 +9,11 @@ CYAN='\033[1;36m'
 BLUE='\033[1;34m'
 NC='\033[0m'
 
+# =========[ Display Banner ]=========
+banner() {
+  echo -e "${CYAN}Welcome to Termux Setup Script${NC}"
+}
+
 # =========[ Check and Enable Termux Storage ]=========
 check_termux_storage() {
   if [ ! -d "$HOME/storage" ]; then
@@ -21,7 +26,7 @@ main_menu() {
   while true; do
     main_choice=$(dialog --clear --backtitle "Termux Setup Script" \
       --title "Main Menu" \
-      --menu "Choose an option:" 20 60 10 \
+      --menu "Choose an option:" 20 60 12 \
       1 "Install Apt Packages + Plugins" \
       2 "Python Packages + Plugins" \
       3 "Full Installation + Plugins" \
@@ -30,8 +35,8 @@ main_menu() {
       6 "Open (Themes)" \
       7 "Restore Termux Environment" \
       8 "Backup Termux Environment" \
-      9 "Install Blutter" \
-      10 "Exit Script" \
+      9 "Exit Script" \
+      10 "Install Blutter" \
       3>&1 1>&2 2>&3)
 
     clear
@@ -84,9 +89,18 @@ main_menu() {
         ;;
       5)
         echo -e "${CYAN}[+] Installing Radare2 Suite...${NC}"
+        cd $HOME
         pkg update && pkg upgrade -y
         pkg install -y build-essential binutils wget git
-        git clone https://github.com/radareorg/radare2 && cd radare2 && sh sys/install.sh && cd ..
+        if [ -d "$HOME/radare2" ]; then
+          echo -e "${YELLOW}[!] Existing 'radare2' directory found. Updating...${NC}"
+          cd radare2 && git reset --hard && git pull
+        else
+          git clone https://github.com/radareorg/radare2
+          cd radare2
+        fi
+        sh sys/install.sh
+        cd $HOME
         r2pm update && r2pm -ci r2ghidra
         pip install r2pipe
         ;;
@@ -102,16 +116,30 @@ main_menu() {
         tar -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
         ;;
       9)
-        echo -e "${CYAN}[+] Installing Blutter...${NC}"
-        cd $HOME
-        git clone https://github.com/dedshit/blutter-termux.git
-        cd blutter-termux
-        pip install requests pyelftools
-        pkg install -y cmake ninja build-essential pkg-config libicu capstone fmt
-        ;;
-      10)
         echo -e "${GREEN}Exiting to Termux...${NC}"
         exit 0
+        ;;
+      10)
+        echo -e "${CYAN}[+] Installing Blutter...${NC}"
+        cd $HOME
+        pkg update -y && pkg upgrade -y
+        pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt python ffmpeg
+        pip install --upgrade pip
+        pip install requests pyelftools
+
+        if [ -d "blutter-termux" ]; then
+          echo -e "${YELLOW}[!] Existing 'blutter-termux' directory found. Updating...${NC}"
+          cd blutter-termux
+          git reset --hard && git pull
+        else
+          git clone https://github.com/dedshit/blutter-termux.git
+          cd blutter-termux
+        fi
+
+        echo -e "${GREEN}[✓] Blutter installation complete.${NC}"
+        echo -e "${YELLOW}To run Blutter, use:${NC} ${WHITE}cd ~/blutter-termux && ./blutter${NC}"
+        echo -e "${YELLOW}Press any key to return to the menu...${NC}"
+        read -n 1 -s
         ;;
       *)
         echo -e "${RED}Invalid input. Please choose between 1 - 10.${NC}"
@@ -132,6 +160,7 @@ submenu() {
       C "Random Theme" \
       D "Zsh Theme (Powerlevel10k)" \
       E "AutoSuggestions + Highlighting Add-ons" \
+      F "Remove Themes" \
       G "Return to Main Menu" \
       3>&1 1>&2 2>&3)
 
@@ -172,6 +201,10 @@ submenu() {
         git clone https://github.com/zsh-users/zsh-autosuggestions $ZSH_CUSTOM/plugins/zsh-autosuggestions
         git clone https://github.com/zsh-users/zsh-syntax-highlighting $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
         sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
+        ;;
+      F|f)
+        echo -e "${CYAN}Removing All Themes...${NC}"
+        rm -rf ~/.termux ~/.zshrc ~/.bashrc
         ;;
       G|g)
         return
