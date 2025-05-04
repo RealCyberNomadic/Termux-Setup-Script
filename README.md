@@ -14,6 +14,9 @@ The Termux Setup Script is designed to automate the setup and configuration of e
   <h2>Termux Setup Script</h2>
   <p>Copy each command separately by clicking on it:</p>
 
+  <pre><code id="cmd4">pkg install git -y</code></pre>
+<button onclick="copyToClipboard('cmd4')">Copy</button>
+
   <pre><code id="cmd1">git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git</code></pre>
   <button onclick="copyToClipboard('cmd1')">Copy</button>
 
