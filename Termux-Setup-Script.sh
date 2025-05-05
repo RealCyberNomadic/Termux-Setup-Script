@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # =========[ Check and Enable Termux Storage ]=========
-
 check_termux_storage() {
   if [ ! -d "$HOME/storage" ]; then
     termux-setup-storage
@@ -9,7 +8,6 @@ check_termux_storage() {
 }
 
 # =========[ Display Main Menu ]=========
-
 main_menu() {
   while true; do
     main_choice=$(dialog --clear --backtitle "Termux Setup Script" \
@@ -95,7 +93,6 @@ main_menu() {
 }
 
 # =========[ Radare2 Suite ]=========
-
 radare2_suite() {
   if [ -d "$HOME/radare2" ]; then
     choice=$(dialog --title "Radare2 Suite" \
@@ -144,7 +141,6 @@ radare2_suite() {
 }
 
 # =========[ Blutter Suite ]=========
-
 blutter_suite() {
   if [ -d "$HOME/blutter-termux" ]; then
     choice=$(dialog --title "Blutter Suite" \
@@ -193,13 +189,12 @@ blutter_suite() {
 }
 
 # =========[ SubMenu: Theme Environments ]=========
-
 submenu() {
   while true; do
     theme_choice=$(dialog --clear --backtitle "Theme Manager" \
       --title "Theme Options" \
       --menu "Select a theme action:" 20 60 10 \
-      A "Engine Theme" \
+      A "myTermux Theme" \
       B "T-Header Theme" \
       C "Random Theme" \
       D "Zsh Theme (Powerlevel10k)" \
@@ -211,9 +206,13 @@ submenu() {
     clear
     case "$theme_choice" in
       A|a)
-        echo "Installing Engine Theme..."
-        git clone https://github.com/imegeek/Theme-Engine
-        cd Theme-Engine && chmod +x theme-engine && ./theme-engine && cd ..
+        echo "Installing myTermux Theme..."
+        pkg install -y git bc
+        cd $HOME
+        git clone --depth=1 https://github.com/mayTermux/myTermux.git
+        cd myTermux
+        export COLUMNS LINES
+        ./install.sh
         ;;
       B|b)
         echo "Installing T-Header Theme..."
@@ -234,11 +233,16 @@ submenu() {
         ;;
       E|e)
         echo "Installing Zsh Add-ons..."
-        sh -c "$(curl -fsSL https://github.com/Cabbagec/termux-ohmyzsh/raw/master/install.sh)"
+        pkg install -y zsh git curl
+        export ZSH="$HOME/.oh-my-zsh"
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+
         ZSH_CUSTOM=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
-        git clone https://github.com/zsh-users/zsh-autosuggestions $ZSH_CUSTOM/plugins/zsh-autosuggestions
-        git clone https://github.com/zsh-users/zsh-syntax-highlighting $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
+        git clone https://github.com/zsh-users/zsh-autosuggestions.git $ZSH_CUSTOM/plugins/zsh-autosuggestions
+        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
+
         sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
+        echo "[✓] Zsh Add-ons installed."
         ;;
       F|f)
         git clone https://github.com/h4ck3r0/Termux-os
@@ -251,6 +255,5 @@ submenu() {
 }
 
 # =========[ Start Script ]=========
-
 check_termux_storage
 main_menu
