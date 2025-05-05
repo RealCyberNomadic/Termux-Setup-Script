@@ -13,11 +13,11 @@ main_menu() {
     main_choice=$(dialog --clear --backtitle "Termux Setup Script" \
       --title "Main Menu" \
       --menu "Choose an option:" 20 60 12 \
-      1 "Install Packages + Plugins" \
+      1 "Python Packages + Plugins" \
       2 "Full Installation + Plugins" \
       3 "Wipe All Packages (Danger!)" \
       4 "Radare2 Suite" \
-      5 "Termux Themes" \
+      5 "Themes" \
       6 "Restore Termux Environment" \
       7 "Backup Termux Environment" \
       8 "Blutter Suite" \
@@ -30,14 +30,12 @@ main_menu() {
         echo "[+] Installing Packages..."
         pkg update -y && pkg upgrade -y
         pkg install -y git curl wget nano vim python python3 ruby php nodejs golang clang zip unzip tar proot neofetch htop openssh nmap net-tools termux-api termux-tools ffmpeg
-        pip install --upgrade pip
         pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
         ;;
       2)
         echo "[+] Performing Full Installation..."
         pkg update -y && pkg upgrade -y
         pkg install -y git curl wget nano vim python python3 ruby php nodejs golang clang zip unzip tar proot neofetch htop openssh nmap net-tools termux-api termux-tools ffmpeg build-essential binutils
-        pip install --upgrade pip
         pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
 
         cd $HOME
@@ -194,12 +192,12 @@ submenu() {
     theme_choice=$(dialog --clear --backtitle "Theme Manager" \
       --title "Theme Options" \
       --menu "Select a theme action:" 20 60 10 \
-      A "myTermux Theme" \
+      A "Rxfetch Theme" \
       B "T-Header Theme" \
-      C "Random Theme" \
+      C "Qurxin + Dependencies Theme" \
       D "Zsh Theme (Powerlevel10k)" \
       E "AutoSuggestions + Highlighting Add-ons" \
-      F "Install Termux-os" \
+      F "Termux-OS Theme" \
       G "Return to Main Menu" \
       3>&1 1>&2 2>&3)
 
@@ -220,9 +218,13 @@ submenu() {
         cd T-Header && bash t-header.sh && cd ..
         ;;
       C|c)
-        echo "Installing Random Theme..."
-        git clone https://github.com/rooted-cyber/Random-Theme
-        cd Random-* && bash install.sh && cd ..
+        echo "Installing Qurxin + Dependencies..."
+        pkg install git python mpv figlet -y
+        pip install lolcat
+        git clone https://github.com/fikrado/qurxin
+        cd qurxin
+        chmod +x *
+        sh install.sh
         ;;
       D|d)
         echo "Installing Powerlevel10k Zsh Theme..."
