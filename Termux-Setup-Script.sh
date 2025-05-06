@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# ========= Check and Enable Termux Storage =========
+# =========[ Check and Enable Termux Storage ]=========
 check_termux_storage() {
   if [ ! -d "$HOME/storage" ]; then
     termux-setup-storage
   fi
 }
 
-# ========= Display Main Menu =========
+# =========[ Display Main Menu ]=========
 main_menu() {
   while true; do
     main_choice=$(dialog --clear --backtitle "Termux Setup Script" \
@@ -16,19 +16,25 @@ main_menu() {
       1 "Themes" \
       2 "Blutter Suite" \
       3 "Radare2 Suite" \
-      4 "Full Installation" \
+      4 "Full Installation + Plugins" \
       5 "Python Packages + Plugins" \
       6 "Backup Termux Environment" \
       7 "Restore Termux Environment" \
-      8 "Wipe Packages (Danager!)" \
+      8 "Wipe All Packages (Danger!)" \
       9 "Exit Script" \
       3>&1 1>&2 2>&3)
 
     clear
     case "$main_choice" in
-      1) submenu ;;
-      2) blutter_suite ;;
-      3) radare2_suite ;;
+      1)
+        submenu
+        ;;
+      2)
+        blutter_suite
+        ;;
+      3)
+        radare2_suite
+        ;;
       4)
         echo "[+] Performing Full Installation..."
         pkg update -y && pkg upgrade -y
@@ -54,9 +60,9 @@ main_menu() {
         echo "[✓] Full installation complete."
         ;;
       5)
-        echo "[+] Installing Python Packages..."
+        echo "[+] Installing Packages..."
         pkg update -y && pkg upgrade -y
-        pkg install -y python python3
+        pkg install -y git curl wget nano vim python python3 ruby php nodejs golang clang zip unzip tar proot neofetch htop openssh nmap net-tools termux-api termux-tools ffmpeg
         pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
         ;;
       6)
@@ -90,7 +96,7 @@ main_menu() {
   done
 }
 
-# ========= Radare2 Suite =========
+# =========[ Radare2 Suite ]=========
 radare2_suite() {
   local choice
   if [ -d "$HOME/radare2" ]; then
@@ -122,8 +128,11 @@ radare2_suite() {
       pip install r2pipe
       ;;
     2)
-      echo "[+] Checking for Radare2 updates..."
+      echo "[+] Checking for Radare2 and related tools updates..."
       cd $HOME/radare2 && git pull && sh sys/install.sh
+      [ -d $HOME/sigtool ] && cd $HOME/sigtool && git pull && pip install --force-reinstall dist/*.whl
+      [ -d $HOME/keysigner ] && cd $HOME/keysigner && git pull && pip install --force-reinstall dist/*.whl
+      [ -f $HOME/hbctool-*.whl ] && pip install --force-reinstall $HOME/hbctool-*.whl
       ;;
     3)
       echo "[+] Installing KeySigner..."
@@ -155,12 +164,12 @@ radare2_suite() {
   read -p "Press Enter to return."
 }
 
-# ========= Blutter Suite =========
+# =========[ Blutter Suite ]=========
 blutter_suite() {
   local choice
   if [ -d "$HOME/blutter-termux" ]; then
     choice=$(dialog --title "Blutter Suite" \
-      --menu "Blutter is installed. Choose an option:" 20 60 4 \
+      --menu "Blutter is installed. Choose an option:" 15 50 4 \
       1 "Reinstall Blutter" \
       2 "Check for Updates" \
       3 "React Native Hermes (Decompiling & Disassembling)" \
@@ -190,8 +199,8 @@ blutter_suite() {
       [ -d "$HOME/hermes-dec" ] && cd $HOME/hermes-dec && git pull
       ;;
     3)
-      echo "[+] Installing React Native Hermes..."
-      pkg install -y python3 python3-pip clang
+      echo "[+] Installing React Native Hermes Bytecode..."
+      pkg install -y python3 pip clang
       cd $HOME && git clone https://github.com/P1sec/hermes-dec.git
       pip install --upgrade git+https://github.com/P1sec/hermes-dec.git
       ;;
@@ -201,7 +210,7 @@ blutter_suite() {
   read -p "Press Enter to return."
 }
 
-# ========= Theme Options =========
+# =========[ SubMenu: Theme Environments ]=========
 submenu() {
   while true; do
     theme_choice=$(dialog --clear --backtitle "Theme Manager" \
@@ -230,6 +239,7 @@ submenu() {
         cd T-Header && bash t-header.sh
         ;;
       C|c)
+        echo "Installing Termux-OS Theme..."
         git clone https://github.com/h4ck3r0/Termux-os
         cd Termux-os && bash os.sh
         ;;
@@ -263,6 +273,6 @@ submenu() {
   done
 }
 
-# ========= Start Script =========
+# =========[ Start Script ]=========
 check_termux_storage
 main_menu
