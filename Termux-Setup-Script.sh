@@ -16,11 +16,11 @@ main_menu() {
       1 "Themes" \
       2 "Blutter Suite" \
       3 "Radare2 Suite" \
-      4 "Full Installation + Plugins" \
+      4 "Full Installation" \
       5 "Python Packages + Plugins" \
       6 "Backup Termux Environment" \
       7 "Restore Termux Environment" \
-      8 "Wipe All Packages (Danger!)" \
+      8 "Wipe All Packages (Caution Dangerous!)" \
       9 "Exit Script" \
       3>&1 1>&2 2>&3)
 
@@ -106,7 +106,7 @@ radare2_suite() {
       2 "Check for Updates" \
       3 "KeySigner (Management & APK Signing Tool)" \
       4 "SigTool (Signature & Keystore Analyzer Pro)" \
-      5 "Hermes Bytecode (Assemble/Disassemble Bytecode)" \
+      5 "Hermes Bytecode (Assemble/Disassemble)" \
       6 "Return to Main Menu" \
       3>&1 1>&2 2>&3)
   else
