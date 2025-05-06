@@ -29,23 +29,23 @@ The script ensures that everything is set up in your **$HOME** directory to keep
 
 1. Install Git (if it’s not already installed):
    <pre><code id="cmd1">pkg install git -y</code></pre>
-   <button onclick="copyToClipboard('cmd1')">Copy</button>
+   <button onclick="copyToClipboard('cmd1')"></button>
 
 2. Clone the repository:
    <pre><code id="cmd2">git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git</code></pre>
-   <button onclick="copyToClipboard('cmd2')">Copy</button>
+   <button onclick="copyToClipboard('cmd2')"></button>
 
 3. Change to the script’s directory:
    <pre><code id="cmd3">cd Termux-Setup-Script</code></pre>
-   <button onclick="copyToClipboard('cmd3')">Copy</button>
+   <button onclick="copyToClipboard('cmd3')"></button>
 
 4. Make the script executable:
    <pre><code id="cmd4">chmod +x Termux-Setup-Script.sh</code></pre>
-   <button onclick="copyToClipboard('cmd4')">Copy</button>
+   <button onclick="copyToClipboard('cmd4')"></button>
 
 5. Run the script:
    <pre><code id="cmd5">bash ./Termux-Setup-Script.sh</code></pre>
-   <button onclick="copyToClipboard('cmd5')">Copy</button>
+   <button onclick="copyToClipboard('cmd5')"></button>
 
 ---
 
