@@ -226,7 +226,6 @@ radare2_suite() {
       ;;
     6) return ;;
   esac
-  read -p "Press Enter to return."
 }
 
 # =========[ Blutter Suite ]=========
@@ -270,7 +269,6 @@ pip install requests pyelftools
       ;;
     4) return ;;
   esac
-  read -p "Press Enter to return."
 }
 
 # =========[ SubMenu: Theme Environments ]=========
