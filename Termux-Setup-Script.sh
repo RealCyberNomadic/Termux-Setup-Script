@@ -38,7 +38,7 @@ main_menu() {
       4)
         echo "[+] Performing Full Installation..."
         pkg update -y && pkg upgrade -y
-        pkg install -y git curl wget nano vim python python3 ruby php nodejs golang clang zip unzip tar proot neofetch htop openssh nmap net-tools termux-api termux-tools ffmpeg build-essential binutils
+        pkg install -y git curl wget nano vim python python ruby php nodejs golang clang zip unzip tar proot neofetch htop openssh nmap net-tools termux-api termux-tools ffmpeg build-essential binutils
         pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
 
         cd $HOME
@@ -59,13 +59,81 @@ main_menu() {
         fi
         echo "[✓] Full installation complete."
         ;;
-      5)
-        echo "[+] Installing Packages..."
-        pkg update -y && pkg upgrade -y
-        pkg install -y git curl wget nano vim python python3 ruby php nodejs golang clang zip unzip tar proot neofetch htop openssh nmap net-tools termux-api termux-tools ffmpeg
+5)
+    python_choice=$(dialog --clear --title "Python Version Selection" \
+      --menu "Choose Python version to install and activate:\n(Note: 3.12 and 3.13 may not be available on all systems)" 20 60 6 \
+      1 "Python 3.10" \
+      2 "Python 3.11" \
+      3 "Python 3.12 (may not work)" \
+      4 "Python 3.13 (may not work)" \
+      5 "Return to Main Menu" \
+      3>&1 1>&2 2>&3)
+
+    if [[ "$python_choice" == "5" || -z "$python_choice" ]]; then
+  continue
+fi
+
+    clear
+    echo -e "\e[1;33m[+] Installing base packages...\e[0m"
+    pkg update -y && pkg upgrade -y
+    pkg install -y git curl wget nano vim ruby php nodejs golang clang zip unzip tar proot neofetch htop openssh nmap net-tools termux-api termux-tools ffmpeg openjdk-17 tur-repo
+
+    echo -e "\e[1;31m[!] Removing old Python versions...\e[0m"
+    removed_versions=$(pkg uninstall -y python python3 python3.10 python3.11 python3.12 python3.13 2>&1 | grep -Eo 'python[0-9.]*' | uniq)
+
+    case "$python_choice" in
+      1) version_pkg="python3.10" ;;
+      2) version_pkg="python3.11" ;;
+      3) version_pkg="python3.12" ;;
+      4) version_pkg="python3.13" ;;
+    esac
+
+    echo -e "\e[1;33m[+] Installing $version_pkg...\e[0m"
+    if ! pkg install -y "$version_pkg"; then
+        echo -e "\e[1;31m[!] Failed to install $version_pkg. It may not be available.\e[0m"
+        read -p "Press Enter to return to Main Menu."
+        continue
+    fi
+
+    # Symlink active python version
+    selected_version=$(ls /data/data/com.termux/files/usr/bin/python3.* | grep -o 'python3\.[0-9]\+' | sort -V | tail -n 1)
+    ln -sf "/data/data/com.termux/files/usr/bin/$selected_version" "$PREFIX/bin/python"
+    ln -sf "/data/data/com.termux/files/usr/bin/$selected_version" "$PREFIX/bin/python3"
+
+    echo -e "\e[1;32m[✓] Active Python version: $selected_version\e[0m"
+
+    echo -e "\e[1;33m[+] Installing Python packages...\e[0m"
+    python_bin=$(command -v python)
+    pip_user_base=$($python_bin -m site --user-base)/bin
+    pip_cmd="$pip_user_base/pip"
+
+    # Ensure pip is available
+    if ! command -v pip >/dev/null 2>&1; then
+        echo -e "\e[1;31m[!] pip not found. Trying to install via ensurepip...\e[0m"
+        $python_bin -m ensurepip --upgrade
+        if [ -f "$pip_cmd" ]; then
+            ln -sf "$pip_cmd" "$PREFIX/bin/pip"
+            chmod +x "$pip_cmd"
+        fi
+    fi
+
+    if command -v pip >/dev/null 2>&1; then
         pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
-        ;;
-      6)
+        echo -e "\e[1;32m[✓] Installed Python packages:\e[0m"
+        echo -e "\e[1;33m- rich\n- requests\n- spotipy\n- yt_dlp\n- ffmpeg-python\n- mutagen\e[0m"
+    else
+        echo -e "\e[1;31m[!] pip still not available. Package installation skipped.\e[0m"
+    fi
+
+    if [ -n "$removed_versions" ]; then
+        echo -e "\e[1;31m[!] Removed old Python versions:\e[0m"
+        echo -e "\e[1;31m$removed_versions\e[0m"
+    fi
+
+    echo
+    read -p "Press Enter to return to Main Menu."
+    ;;
+        6)
         echo "[+] Backing up Termux Environment..."
         tar -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
         ;;
@@ -78,13 +146,11 @@ main_menu() {
         read -rp "Type YES to confirm: " confirm_wipe
         if [[ "$confirm_wipe" == "YES" ]]; then
           echo "Resetting Termux..."
-          sleep 2
-          rm -rf $HOME/* /data/data/com.termux/files/usr/* ~/.bash_history ~/.termux ~/.bashrc ~/.profile ~/.zshrc ~/../usr ~/../home/*
+          rm -rf $HOME/* $HOME/.* /data/data/com.termux/files/usr/* ~/.bash_history ~/.termux ~/.bashrc ~/.profile ~/.zshrc ~/../usr $PREFIX $HOME && exit
           echo "Wipe complete. Restart Termux to take effect."
           exit 0
         else
           echo "Cancelled."
-          sleep 1
         fi
         ;;
       9)
@@ -102,11 +168,11 @@ radare2_suite() {
   if [ -d "$HOME/radare2" ]; then
     choice=$(dialog --title "Radare2 Suite" \
       --menu "Radare2 is installed. Choose an option:" 20 60 6 \
-      1 "Reinstall Radare2" \
+      1 "Install Radare2" \
       2 "Check for Updates" \
-      3 "KeySigner (Management & APK Signing Tool)" \
-      4 "SigTool (Signature & Keystore Analyzer Pro)" \
-      5 "Hermes Bytecode (Assemble/Disassemble)" \
+      3 "KeySigner (APK & Key Tool)" \
+      4 "SigTool (Analyzer Pro)" \
+      5 "Hbctool (Asm/Disasm)" \
       6 "Return to Main Menu" \
       3>&1 1>&2 2>&3)
   else
@@ -152,14 +218,13 @@ radare2_suite() {
       pip install --force-reinstall dist/*.whl
       ;;
     5)
-      echo "[+] Installing Hermes Bytecode Tool..."
+      echo "[+] Installing hbctool..."
       cd $HOME
       wget -O hbctool-0.1.5-96-py3-none-any.whl https://github.com/Kirlif/HBC-Tool/releases/download/96/hbctool-0.1.5-96-py3-none-any.whl
       pip install --force-reinstall hbctool-0.1.5-96-py3-none-any.whl
       wget -O hbclabel.py https://raw.githubusercontent.com/Kirlif/Python-Stuff/main/hbclabel.py
       ;;
     6) return ;;
-    *) echo "Invalid input." ;;
   esac
   read -p "Press Enter to return."
 }
@@ -170,9 +235,9 @@ blutter_suite() {
   if [ -d "$HOME/blutter-termux" ]; then
     choice=$(dialog --title "Blutter Suite" \
       --menu "Blutter is installed. Choose an option:" 15 50 4 \
-      1 "Reinstall Blutter" \
+      1 "Install Blutter" \
       2 "Check for Updates" \
-      3 "React Native Hermes (Decompiling & Disassembling)" \
+      3 "Hermes (Decompile & Disasm)" \
       4 "Return to Main Menu" \
       3>&1 1>&2 2>&3)
   else
@@ -187,8 +252,7 @@ blutter_suite() {
     1)
       echo "[+] Installing Blutter..."
       pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt python ffmpeg
-      pip install --upgrade pip
-      pip install requests pyelftools
+pip install requests pyelftools
       cd $HOME
       git clone https://github.com/dedshit/blutter-termux.git
       echo "[✓] Blutter installed. Run with: cd ~/blutter-termux && ./blutter"
@@ -199,13 +263,12 @@ blutter_suite() {
       [ -d "$HOME/hermes-dec" ] && cd $HOME/hermes-dec && git pull
       ;;
     3)
-      echo "[+] Installing React Native Hermes Bytecode..."
-      pkg install -y python3 pip clang
+      echo "[+] Installing Hermes-Dec..."
+      pkg install -y python pip clang
       cd $HOME && git clone https://github.com/P1sec/hermes-dec.git
       pip install --upgrade git+https://github.com/P1sec/hermes-dec.git
       ;;
     4) return ;;
-    *) echo "Cancelled." ;;
   esac
   read -p "Press Enter to return."
 }
@@ -219,7 +282,7 @@ submenu() {
       A "Rxfetch Theme" \
       B "T-Header Theme" \
       C "Termux-OS Theme" \
-      D "Zsh Theme (Powerlevel10k)" \
+      D "Powerlevel10k Theme" \
       E "Qurxin + Dependencies Theme" \
       F "AutoSuggestions + Highlighting Add-ons" \
       G "Return to Main Menu" \
@@ -268,7 +331,6 @@ submenu() {
         sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
         ;;
       G|g) return ;;
-      *) echo "Invalid input. Try again." ;;
     esac
   done
 }
