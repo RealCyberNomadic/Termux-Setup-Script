@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="2.0.3"  # Update this each time you push a new version on GitHub
+SCRIPT_VERSION="2.0.1"  # Update this each time you push a new version on GitHub
 
 check_updates() {
   SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
@@ -289,7 +289,7 @@ submenu() {
         ;;
       F|f)
         echo "Installing Zsh Add-ons..."
-                pkg install -y zsh git curl
+        pkg install -y zsh git curl
         export ZSH="$HOME/.oh-my-zsh"
         sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
         ZSH_CUSTOM=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
@@ -356,7 +356,8 @@ main_menu() {
       7) 
         echo "[*] Manual update requested..."
         check_updates
-        :;
+        read -p "Press [Enter] to return to main menu..."
+        ;;
       8) motd_prompt ;;
       9)
         echo "Exiting..."
@@ -369,5 +370,5 @@ main_menu() {
 
 # =========[ Start Script ]=========
 check_termux_storage
-check_updates  # Silent update on script start
+check_updates
 main_menu
