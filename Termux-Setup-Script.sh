@@ -31,18 +31,20 @@ check_updates() {
   echo "[*] Local version: $SCRIPT_VERSION"
   
   if [ "$remote_version" != "$SCRIPT_VERSION" ]; then
-    echo "[*] New version detected ($remote_version). Updating silently..."
+    echo "[*] New version detected ($remote_version). Updating..."
     if curl -s "$SCRIPT_URL" > "$0.tmp"; then
       mv "$0.tmp" "$0"
       chmod +x "$0"
-      echo "[*] Update successful. Restarting script..."
-      exec "$(pwd)/$0" "$@"
+      echo "[✓] Update successful."
+      return 2  # Signal to caller that an update was made
     else
-      echo "[!] Silent update failed. Continuing with old version."
+      echo "[!] Update failed. Continuing with old version."
       rm -f "$0.tmp"
+      return 1
     fi
   else
     echo "[✓] You have the latest version ($SCRIPT_VERSION)."
+    return 0
   fi
 }
 
@@ -354,9 +356,17 @@ main_menu() {
         fi
         ;;
       7) 
-        echo "[*] Manual update requested..."
+        echo "[*] Checking for script updates..."
         check_updates
-        read -p "Press [Enter] to return to main menu..."
+        result=$?
+        if [ "$result" -eq 2 ]; then
+          echo "[*] Restarting script with updated version..."
+          sleep 2
+          exec bash "$0"
+        else
+          echo "[*] No update needed or update failed. Returning to main menu in 3 seconds..."
+          sleep 3
+        fi
         ;;
       8) motd_prompt ;;
       9)
@@ -370,5 +380,4 @@ main_menu() {
 
 # =========[ Start Script ]=========
 check_termux_storage
-check_updates
 main_menu
