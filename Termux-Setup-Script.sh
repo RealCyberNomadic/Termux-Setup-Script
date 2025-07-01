@@ -181,16 +181,19 @@ radare2_suite() {
 blutter_suite() {
   local choice
   if [ -d "$HOME/blutter-termux" ]; then
+    # Menu when Blutter is installed
     choice=$(dialog --title "Blutter Suite" \
       --menu "Blutter is installed. Choose an option:" 15 50 4 \
       1 "Install Blutter" \
-      2 "Check for Updates" \
-      3 "Hermes (Decompile & Disasm)" \
+      2 "Hermes (Decompile & Disasm)" \
+      3 "APKEditor" \
       4 "Return to Main Menu" 3>&1 1>&2 2>&3)
   else
+    # Initial installation menu
     choice=$(dialog --title "Blutter Suite" \
-      --menu "Blutter not detected. Choose an option:" 10 50 1 \
-      1 "Install Blutter" 3>&1 1>&2 2>&3)
+      --menu "Blutter not detected. Choose an option:" 10 50 2 \
+      1 "Install Blutter" \
+      2 "APKEditor" 3>&1 1>&2 2>&3)
   fi
 
   clear
@@ -200,19 +203,107 @@ blutter_suite() {
       pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt python ffmpeg
       pip install requests pyelftools
       cd $HOME
+      # Remove existing installation if reinstalling
+      [ -d "$HOME/blutter-termux" ] && rm -rf "$HOME/blutter-termux"
       git clone https://github.com/dedshit/blutter-termux.git
+      echo "alias r2b='cd /sdcard/radare2/aaa && echo *so && reblutter'" >> ~/.bashrc
+      echo "alias r2b='cd /sdcard/radare2/aaa && echo *so && reblutter'" >> ~/.zshrc
       echo "[✓] Blutter installed. Run with: cd ~/blutter-termux && ./blutter"
+      echo "[✓] Alias 'r2b' added to your shell configuration."
       ;;
+
     2)
-      echo "[+] Checking for Blutter updates..."
-      cd $HOME/blutter-termux && git pull
+      if [ -d "$HOME/blutter-termux" ]; then
+        echo "[+] Installing Hermes-Dec..."
+        pkg install -y python pip clang
+        cd $HOME && git clone https://github.com/P1sec/hermes-dec.git
+        pip install --upgrade git+https://github.com/P1sec/hermes-dec.git
+      else
+        echo "[!] Blutter not installed. Please install Blutter first."
+        read -p "Press [Enter] to continue..."
+      fi
       ;;
+
     3)
-      echo "[+] Installing Hermes-Dec..."
-      pkg install -y python pip clang
-      cd $HOME && git clone https://github.com/P1sec/hermes-dec.git
-      pip install --upgrade git+https://github.com/P1sec/hermes-dec.git
+      # Check/install APKEditor
+      if [ ! -f "/storage/emulated/0/MT2/APKEditor.jar" ]; then
+        echo "[+] APKEditor not found. Downloading..."
+        mkdir -p $HOME/temp_downloads
+        cd $HOME/temp_downloads
+        if wget https://github.com/REAndroid/APKEditor/releases/download/V1.4.3/APKEditor-1.4.3.jar; then
+          echo "[✓] Download successful"
+          mkdir -p /storage/emulated/0/MT2
+          if mv APKEditor-1.4.3.jar /storage/emulated/0/MT2/APKEditor.jar; then
+            echo "[✓] File moved and renamed successfully"
+          else
+            echo "[!] Failed to move file to /storage/emulated/0/MT2/"
+            echo "[*] The file is available at $HOME/temp_downloads/APKEditor-1.4.3.jar"
+            read -p "Press [Enter] to continue..."
+            cd $HOME && rm -rf $HOME/temp_downloads
+            return
+          fi
+        else
+          echo "[!] Download failed. Check your internet connection."
+          read -p "Press [Enter] to continue..."
+          cd $HOME && rm -rf $HOME/temp_downloads
+          return
+        fi
+        cd $HOME && rm -rf $HOME/temp_downloads
+      fi
+
+      # Auto-detect APK name
+      auto_detect_apk() {
+        local apk_dir="/storage/emulated/0/MT2/apks"
+        mkdir -p "$apk_dir"
+        
+        # Try to find an APK/APKS file
+        local apk_file=$(find "$apk_dir" -maxdepth 1 -type f \( -name "*.apk" -o -name "*.apks" \) -print -quit)
+        
+        if [ -z "$apk_file" ]; then
+          echo "[!] No APK files found in $apk_dir"
+          echo "Please place your APK/APKS files in $apk_dir first"
+          read -p "Press [Enter] to continue..."
+          return 1
+        fi
+        
+        # Return just the filename without extension
+        basename "${apk_file%.*}"
+      }
+
+      # Get APK name automatically
+      apk_name=$(auto_detect_apk) || return
+
+      # APKEditor operations submenu
+      apkeditor_choice=$(dialog --title "APKEditor Operations (Detected: $apk_name)" \
+        --menu "Choose an operation:" 15 50 4 \
+        1 "Merge APKS to APK" \
+        2 "Decompile APK" \
+        3 "Compile APK" \
+        4 "Return to Main Menu" 3>&1 1>&2 2>&3)
+      
+      clear
+      case "$apkeditor_choice" in
+        1)
+          echo "[+] Running APKEditor Merge for $apk_name..."
+          cd /storage/emulated/0/MT2/
+          exec java -jar APKEditor.jar m -i "apks/$apk_name.apks" -o "apks/$apk_name.apk"
+          ;;
+        2)
+          echo "[+] Running APKEditor Decompile for $apk_name..."
+          cd /storage/emulated/0/MT2/
+          exec java -jar APKEditor.jar d -i "apks/$apk_name.apk" -o "apks/$apk_name/"
+          ;;
+        3)
+          echo "[+] Running APKEditor Compile for $apk_name..."
+          cd /storage/emulated/0/MT2/
+          exec java -jar APKEditor.jar b -i "apks/$apk_name/" -o "apks/$apk_name.apk"
+          ;;
+        4)
+          return
+          ;;
+      esac
       ;;
+
     4) return ;;
   esac
 }
