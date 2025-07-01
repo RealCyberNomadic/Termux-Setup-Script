@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="2.0.6"  # Update this each time you push a new version on GitHub
+SCRIPT_VERSION="2.0.9"  # Update this each time you push a new version on GitHub
 
 check_updates() {
   SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
@@ -11,6 +11,7 @@ check_updates() {
 
   echo "[+] Fetching remote script..."
   remote_content=$(curl -s "$SCRIPT_URL" || echo "")
+  
   if [ -z "$remote_content" ]; then
     echo "[!] Failed to fetch remote script. Check your internet connection."
     return 1
@@ -19,6 +20,7 @@ check_updates() {
   fi
 
   remote_version=$(echo "$remote_content" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
+  
   if [ -z "$remote_version" ]; then
     echo "[!] Could not determine remote version."
     echo "Remote content snippet:"
@@ -30,15 +32,16 @@ check_updates() {
 
   echo "[*] Local version: $SCRIPT_VERSION"
   
+  # Compare versions for updates
   if [ "$remote_version" != "$SCRIPT_VERSION" ]; then
     echo "[*] New version detected ($remote_version). Updating..."
     if curl -s "$SCRIPT_URL" > "$0.tmp"; then
       mv "$0.tmp" "$0"
       chmod +x "$0"
-      echo "[✓] Update successful."
-      return 2  # Signal to caller that an update was made
+      echo "[✓] Update successful. Restarting script..."
+      exec bash "$0"  # Restart the script after update
     else
-      echo "[!] Update failed. Continuing with old version."
+      echo "[!] Update failed. Continuing with the old version."
       rm -f "$0.tmp"
       return 1
     fi
