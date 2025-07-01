@@ -54,33 +54,22 @@ check_updates() {
 # =========[ Original Functions ]=========
 motd_prompt() {
   prompt_count_file="$HOME/.motd_prompt_count"
-  disable_forever_file="$HOME/.motd_never_ask"
   motd_enabled_flag="$HOME/.motd_enabled"
 
   [ ! -f "$prompt_count_file" ] && echo 0 > "$prompt_count_file"
   prompt_count=$(cat "$prompt_count_file")
 
-  if [ -f "$disable_forever_file" ]; then
-    return
-  fi
-
-  if [ "$prompt_count" -lt 3 ]; then
+  if [ "$prompt_count" -eq 0 ]; then
     dialog --title "MOTD Display" \
-      --yesno "Do you want to remove the default Termux welcome message (MOTD) and use a custom one?" 8 60
-    response=$?
+      --yesno "Do you want to remove the default Termux welcome message (MOTD)?" 8 60
+    remove_response=$?
 
-    if [ "$response" -eq 0 ]; then
+    if [ "$remove_response" -eq 0 ]; then
       echo "[+] Disabling default MOTD..."
       rm -f $PREFIX/etc/motd
-
-      sed -i '/^neofetch/d' $HOME/.bashrc 2>/dev/null
-      sed -i '/^figlet/d' $HOME/.bashrc 2>/dev/null
-      sed -i '/^neofetch/d' $HOME/.profile 2>/dev/null
-      sed -i '/^figlet/d' $HOME/.profile 2>/dev/null
-
-      echo "[+] MOTD disabled."
       touch "$motd_enabled_flag"
-
+      
+      # Ask about color for ASCII MOTD
       color_choice=$(dialog --title "MOTD Color" --menu "Choose a color for the ASCII MOTD:" 15 50 6 \
         1 "Red" 2 "Green" 3 "Yellow" 4 "Blue" 5 "Magenta" 6 "Cyan" 3>&1 1>&2 2>&3)
 
@@ -104,16 +93,42 @@ motd_prompt() {
 EOF
 )\033[0m" > $PREFIX/etc/motd
 
+      echo "[+] Default MOTD removed and custom ASCII MOTD set."
     else
-      prompt_count=$((prompt_count + 1))
-      echo "$prompt_count" > "$prompt_count_file"
-      echo "[+] Keeping MOTD..."
-      if [ "$prompt_count" -ge 3 ]; then
-        touch "$disable_forever_file"
-        echo "[!] You will not be asked again."
+      # If user doesn't want to remove MOTD, ask if they want to change color
+      dialog --title "MOTD Color" \
+        --yesno "Do you want to change the color of the current MOTD?" 8 60
+      color_response=$?
+
+      if [ "$color_response" -eq 0 ]; then
+        color_choice=$(dialog --title "MOTD Color" --menu "Choose a color for the MOTD:" 15 50 6 \
+          1 "Red" 2 "Green" 3 "Yellow" 4 "Blue" 5 "Magenta" 6 "Cyan" 3>&1 1>&2 2>&3)
+
+        case $color_choice in
+          1) color='\033[1;31m' ;; 
+          2) color='\033[1;32m' ;;
+          3) color='\033[1;33m' ;;
+          4) color='\033[1;34m' ;;
+          5) color='\033[1;35m' ;;
+          6) color='\033[1;36m' ;;
+          *) color='\033[0m' ;;
+        esac
+
+        # Apply color to existing MOTD
+        if [ -f "$PREFIX/etc/motd" ]; then
+          motd_content=$(cat $PREFIX/etc/motd)
+          echo -e "${color}${motd_content}\033[0m" > $PREFIX/etc/motd
+          echo "[+] MOTD color changed."
+        else
+          echo "[!] No MOTD found to color."
+        fi
       fi
     fi
+    
+    # Increment prompt count so we don't ask again
+    echo 1 > "$prompt_count_file"
   elif [ -f "$motd_enabled_flag" ]; then
+    # If MOTD was previously customized, offer to change color
     color_choice=$(dialog --title "MOTD Color" --menu "Re-select your MOTD color:" 15 50 6 \
       1 "Red" 2 "Green" 3 "Yellow" 4 "Blue" 5 "Magenta" 6 "Cyan" 3>&1 1>&2 2>&3)
 
