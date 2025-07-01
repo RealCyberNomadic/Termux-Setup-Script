@@ -356,8 +356,7 @@ main_menu() {
       7) 
         echo "[*] Manual update requested..."
         check_updates
-        read -p "Press [Enter] to return to main menu..."
-        ;;
+        :;
       8) motd_prompt ;;
       9)
         echo "Exiting..."
