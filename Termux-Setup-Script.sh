@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="2.0.1"
 
 motd_prompt() {
   prompt_count_file="$HOME/.motd_prompt_count"
