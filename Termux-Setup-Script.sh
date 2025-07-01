@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="2.1.0"  # Update this each time you push a new version on GitHub
+SCRIPT_VERSION="2.0.3"  # Update this each time you push a new version on GitHub
 
 check_updates() {
   SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
