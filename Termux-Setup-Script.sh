@@ -1,5 +1,113 @@
 #!/usr/bin/env bash
 
+motd_prompt() {
+  prompt_count_file="$HOME/.motd_prompt_count"
+  disable_forever_file="$HOME/.motd_never_ask"
+  motd_enabled_flag="$HOME/.motd_enabled"
+
+  # Initialize counter if not exists
+  [ ! -f "$prompt_count_file" ] && echo 0 > "$prompt_count_file"
+  prompt_count=$(cat "$prompt_count_file")
+
+  # Exit early if user chose never to be asked again
+  if [ -f "$disable_forever_file" ]; then
+    return
+  fi
+
+  # Show prompt if under 3 attempts
+  if [ "$prompt_count" -lt 3 ]; then
+    dialog --title "MOTD Display" \
+      --yesno "Do you want to remove the default Termux welcome message (MOTD) and use a custom one?" 8 60
+    response=$?
+
+    if [ "$response" -eq 0 ]; then
+      echo "[+] Disabling default MOTD..."
+      rm -f $PREFIX/etc/motd
+
+      # Clean neofetch/figlet
+      sed -i '/^neofetch/d' $HOME/.bashrc 2>/dev/null
+      sed -i '/^figlet/d' $HOME/.bashrc 2>/dev/null
+      sed -i '/^neofetch/d' $HOME/.profile 2>/dev/null
+      sed -i '/^figlet/d' $HOME/.profile 2>/dev/null
+
+      echo "[+] MOTD disabled."
+
+      # Save flag for future color prompts
+      touch "$motd_enabled_flag"
+
+      # Let user choose color
+      color_choice=$(dialog --title "MOTD Color" --menu "Choose a color for the ASCII MOTD:" 15 50 6 \
+        1 "Red" \
+        2 "Green" \
+        3 "Yellow" \
+        4 "Blue" \
+        5 "Magenta" \
+        6 "Cyan" 3>&1 1>&2 2>&3)
+
+      case $color_choice in
+        1) color='\033[1;31m' ;; # Red
+        2) color='\033[1;32m' ;; # Green
+        3) color='\033[1;33m' ;; # Yellow
+        4) color='\033[1;34m' ;; # Blue
+        5) color='\033[1;35m' ;; # Magenta
+        6) color='\033[1;36m' ;; # Cyan
+        *) color='\033[0m' ;;    # Default
+      esac
+
+      echo -e "${color}$(cat << 'EOF'
+████████╗███████╗██████╗ ███╗   ███╗██╗   ██╗██╗  ██╗
+╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║   ██║╚██╗██╔╝
+   ██║   █████╗  ██████╔╝██╔████╔██║██║   ██║ ╚███╔╝ 
+   ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║   ██║ ██╔██╗ 
+   ██║   ███████╗██║  ██║██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗
+   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝
+EOF
+)\033[0m" > $PREFIX/etc/motd
+
+    else
+      # If user says "No", increment counter
+      prompt_count=$((prompt_count + 1))
+      echo "$prompt_count" > "$prompt_count_file"
+
+      echo "[+] Keeping MOTD..."
+      # If 3rd "No", create a permanent skip flag
+      if [ "$prompt_count" -ge 3 ]; then
+        touch "$disable_forever_file"
+        echo "[!] You will not be asked again."
+      fi
+    fi
+  elif [ -f "$motd_enabled_flag" ]; then
+    # If already opted in and ASCII is set, allow color re-selection
+    color_choice=$(dialog --title "MOTD Color" --menu "Re-select your MOTD color:" 15 50 6 \
+      1 "Red" \
+      2 "Green" \
+      3 "Yellow" \
+      4 "Blue" \
+      5 "Magenta" \
+      6 "Cyan" 3>&1 1>&2 2>&3)
+
+    case $color_choice in
+      1) color='\033[1;31m' ;;
+      2) color='\033[1;32m' ;;
+      3) color='\033[1;33m' ;;
+      4) color='\033[1;34m' ;;
+      5) color='\033[1;35m' ;;
+      6) color='\033[1;36m' ;;
+      *) color='\033[0m' ;;
+    esac
+
+    echo -e "${color}$(cat << 'EOF'
+████████╗███████╗██████╗ ███╗   ███╗██╗   ██╗██╗  ██╗
+╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║   ██║╚██╗██╔╝
+   ██║   █████╗  ██████╔╝██╔████╔██║██║   ██║ ╚███╔╝ 
+   ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║   ██║ ██╔██╗ 
+   ██║   ███████╗██║  ██║██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗
+   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝
+EOF
+)\033[0m" > $PREFIX/etc/motd
+  fi
+}
+
 # =========[ Check and Enable Termux Storage ]=========
 check_termux_storage() {
   if [ ! -d "$HOME/storage" ]; then
@@ -16,12 +124,12 @@ main_menu() {
       1 "Themes" \
       2 "Blutter Suite" \
       3 "Radare2 Suite" \
-      4 "Full Installation" \
-      5 "Python Packages + Plugins" \
-      6 "Backup Termux Environment" \
-      7 "Restore Termux Environment" \
-      8 "Wipe All Packages (Caution Dangerous!)" \
-      9 "Exit Script" \
+      4 "Python Packages + Plugins" \
+      5 "Backup Termux Environment" \
+      6 "Restore Termux Environment" \
+      7 "Wipe All Packages (Caution Dangerous!)" \
+      8 "Exit Script" \
+      9 "MOTD Settings" \
       3>&1 1>&2 2>&3)
 
     clear
@@ -36,112 +144,36 @@ main_menu() {
         radare2_suite
         ;;
       4)
-        echo "[+] Performing Full Installation..."
-        pkg update -y && pkg upgrade -y
-        pkg install -y git curl wget nano vim python python ruby php nodejs golang clang zip unzip tar proot neofetch htop openssh nmap net-tools termux-api termux-tools ffmpeg build-essential binutils
+        clear
+        echo -e "\e[1;33m[+] Updating and Installing all base packages...\e[0m"
+        yes | pkg update -y
+        yes | pkg upgrade -y
+        yes | pkg install -y git curl wget nano vim ruby php nodejs golang clang zip unzip tar proot neofetch htop openssh nmap net-tools termux-api termux-tools ffmpeg openjdk-17 tur-repo build-essential binutils
+
+        echo -e "\e[1;33m[+] Installing Python packages...\e[0m"
         pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
 
-        cd $HOME
-        if [ -d "radare2" ]; then
-          echo "[!] Updating existing radare2..."
-          cd radare2 && git reset --hard && git pull && sh sys/install.sh && cd ..
-        else
-          git clone https://github.com/radareorg/radare2 && cd radare2 && sh sys/install.sh && cd ..
-        fi
-        r2pm update && r2pm -ci r2ghidra
-        pip install r2pipe
+        echo -e "\e[1;33m[✓] Installed Packages:\e[0m"
+        echo -e "\e[1;33m- git\n- curl\n- wget\n- nano\n- vim\n- ruby\n- php\n- nodejs\n- golang\n- clang"
+        echo -e "- zip\n- unzip\n- tar\n- proot\n- neofetch\n- htop\n- openssh\n- nmap\n- net-tools"
+        echo -e "- termux-api\n- termux-tools\n- ffmpeg\n- openjdk-17\n- build-essential\n- binutils\e[0m"
 
-        if [ -d "blutter-termux" ]; then
-          echo "[!] Updating existing Blutter..."
-          cd blutter-termux && git reset --hard && git pull && cd ..
-        else
-          git clone https://github.com/dedshit/blutter-termux.git && cd blutter-termux && cd ..
-        fi
-        echo "[✓] Full installation complete."
-        ;;
-5)
-    python_choice=$(dialog --clear --title "Python Version Selection" \
-      --menu "Choose Python version to install and activate:\n(Note: 3.12 and 3.13 may not be available on all systems)" 20 60 6 \
-      1 "Python 3.10" \
-      2 "Python 3.11" \
-      3 "Python 3.12 (may not work)" \
-      4 "Python 3.13 (may not work)" \
-      5 "Return to Main Menu" \
-      3>&1 1>&2 2>&3)
-
-    if [[ "$python_choice" == "5" || -z "$python_choice" ]]; then
-  continue
-fi
-
-    clear
-    echo -e "\e[1;33m[+] Installing base packages...\e[0m"
-    pkg update -y && pkg upgrade -y
-    pkg install -y git curl wget nano vim ruby php nodejs golang clang zip unzip tar proot neofetch htop openssh nmap net-tools termux-api termux-tools ffmpeg openjdk-17 tur-repo
-
-    echo -e "\e[1;31m[!] Removing old Python versions...\e[0m"
-    removed_versions=$(pkg uninstall -y python python3 python3.10 python3.11 python3.12 python3.13 2>&1 | grep -Eo 'python[0-9.]*' | uniq)
-
-    case "$python_choice" in
-      1) version_pkg="python3.10" ;;
-      2) version_pkg="python3.11" ;;
-      3) version_pkg="python3.12" ;;
-      4) version_pkg="python3.13" ;;
-    esac
-
-    echo -e "\e[1;33m[+] Installing $version_pkg...\e[0m"
-    if ! pkg install -y "$version_pkg"; then
-        echo -e "\e[1;31m[!] Failed to install $version_pkg. It may not be available.\e[0m"
-        read -p "Press Enter to return to Main Menu."
-        continue
-    fi
-
-    # Symlink active python version
-    selected_version=$(ls /data/data/com.termux/files/usr/bin/python3.* | grep -o 'python3\.[0-9]\+' | sort -V | tail -n 1)
-    ln -sf "/data/data/com.termux/files/usr/bin/$selected_version" "$PREFIX/bin/python"
-    ln -sf "/data/data/com.termux/files/usr/bin/$selected_version" "$PREFIX/bin/python3"
-
-    echo -e "\e[1;32m[✓] Active Python version: $selected_version\e[0m"
-
-    echo -e "\e[1;33m[+] Installing Python packages...\e[0m"
-    python_bin=$(command -v python)
-    pip_user_base=$($python_bin -m site --user-base)/bin
-    pip_cmd="$pip_user_base/pip"
-
-    # Ensure pip is available
-    if ! command -v pip >/dev/null 2>&1; then
-        echo -e "\e[1;31m[!] pip not found. Trying to install via ensurepip...\e[0m"
-        $python_bin -m ensurepip --upgrade
-        if [ -f "$pip_cmd" ]; then
-            ln -sf "$pip_cmd" "$PREFIX/bin/pip"
-            chmod +x "$pip_cmd"
-        fi
-    fi
-
-    if command -v pip >/dev/null 2>&1; then
-        pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
-        echo -e "\e[1;32m[✓] Installed Python packages:\e[0m"
+        echo -e "\e[1;33m[✓] Installed Python packages:\e[0m"
         echo -e "\e[1;33m- rich\n- requests\n- spotipy\n- yt_dlp\n- ffmpeg-python\n- mutagen\e[0m"
-    else
-        echo -e "\e[1;31m[!] pip still not available. Package installation skipped.\e[0m"
-    fi
 
-    if [ -n "$removed_versions" ]; then
-        echo -e "\e[1;31m[!] Removed old Python versions:\e[0m"
-        echo -e "\e[1;31m$removed_versions\e[0m"
-    fi
-
-    echo
-    read -p "Press Enter to return to Main Menu."
-    ;;
-        6)
+        echo -e "\e[1;32m[✓] All installations complete. Returning to Main Menu...\e[0m"
+        sleep 2
+        continue
+        ;;
+      5)
         echo "[+] Backing up Termux Environment..."
         tar -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
         ;;
-      7)
+      6)
         echo "[+] Restoring Termux Environment..."
         tar --touch -zxf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files --recursive-unlink --preserve-permissions
         ;;
-      8)
+      7)
         echo "[!] WARNING: This will wipe your Termux environment!"
         read -rp "Type YES to confirm: " confirm_wipe
         if [[ "$confirm_wipe" == "YES" ]]; then
@@ -153,9 +185,12 @@ fi
           echo "Cancelled."
         fi
         ;;
-      9)
+      8)
         echo "Exiting..."
         exit 0
+        ;;
+      9)
+        motd_prompt
         ;;
       *) echo "Invalid input. Try again." ;;
     esac
@@ -251,7 +286,7 @@ blutter_suite() {
     1)
       echo "[+] Installing Blutter..."
       pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt python ffmpeg
-pip install requests pyelftools
+      pip install requests pyelftools
       cd $HOME
       git clone https://github.com/dedshit/blutter-termux.git
       echo "[✓] Blutter installed. Run with: cd ~/blutter-termux && ./blutter"
@@ -313,10 +348,20 @@ submenu() {
         ;;
       E|e)
         echo "Installing Qurxin + Dependencies..."
+        pkg update && pkg upgrade -y
         pkg install git python mpv figlet -y
         pip install lolcat
+
+        echo "Cloning Qurxin theme..."
         git clone https://github.com/fikrado/qurxin
-        cd qurxin && chmod +x * && sh install.sh
+        cd qurxin || exit
+
+        echo "Installing theme locally to ~/.themes..."
+        mkdir -p ~/.themes
+        cp -r Qurxin* ~/.themes/
+
+        echo "Qurxin theme installed locally."
+        figlet Qurxin | lolcat
         ;;
       F|f)
         echo "Installing Zsh Add-ons..."
