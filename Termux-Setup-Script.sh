@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="2.1.1"  # MUST match GitHub version to prevent loops
+SCRIPT_VERSION="0.6.0"  # MUST match GitHub version to prevent loops
 
 # -------------------------------------------------------------------
 #  CORE UPDATE MECHANISM - NO TOUCHING BELOW FOR PROPER FUNCTIONING
