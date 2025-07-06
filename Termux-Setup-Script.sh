@@ -1,181 +1,45 @@
 #!/usr/bin/env bash
-# MUST match GitHub version exactly
-SCRIPT_VERSION="0.8.0"
+SCRIPT_VERSION="2.1.1"  # MUST match GitHub version to prevent loops
 
-# ===================== TERMUX-SAFE UPDATER =====================
-update_script() {
-    echo -e "\033[1;36m[+] Updating script from GitHub...\033[0m"
+# -------------------------------------------------------------------
+#  CORE UPDATE MECHANISM - NO TOUCHING BELOW FOR PROPER FUNCTIONING
+# -------------------------------------------------------------------
+force_update() {
+    echo -e "\033[1;36m[🚀] FORCE UPDATING SCRIPT FROM GITHUB...\033[0m"
     
-    # Download to a temporary location in Termux home
-    tmp_script="$HOME/termux_script_update.tmp"
-    
-    if curl -L --max-time 10 --fail \
-        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
-        -o "$tmp_script"; then
-        
-        # Verify we downloaded a valid script
-        if ! grep -q '^#!/' "$tmp_script" || ! grep -q 'SCRIPT_VERSION=' "$tmp_script"; then
-            echo -e "\033[1;31m[!] Invalid script downloaded - update failed\033[0m"
-            rm -f "$tmp_script"
-            return 1
-        fi
-        
-        # Get the new version
-        new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_script" | cut -d'"' -f2)
-        
-        # Replace current script
-        if mv "$tmp_script" "$0"; then
-            chmod +x "$0"
-            echo -e "\033[1;32m[✓] Successfully updated to v$new_version\033[0m"
-            echo -e "\033[1;33m[*] Restarting script to apply changes...\033[0m"
-            sleep 3
-            exec bash "$0" "$@"
-        else
-            echo -e "\033[1;31m[!] Failed to replace script\033[0m"
-            echo -e "\033[1;33m[*] Try moving it manually: mv '$tmp_script' '$0'\033[0m"
-            return 1
-        fi
+    # Download directly to the original script path
+    if curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" -o "$0"; then
+        chmod +x "$0"
+        echo -e "\033[1;32m[✓] UPDATE SUCCESS! Reloading...\033[0m"
+        sleep 2
+        exec "$0" "$@"
     else
-        echo -e "\033[1;31m[!] Download failed - check internet connection\033[0m"
+        echo -e "\033[1;31m[✗] UPDATE FAILED! Check internet/URL.\033[0m"
         return 1
     fi
 }
 
-# ===================== STORAGE CHECK =====================
-check_termux_storage() {
-    if [[ ! -d ~/storage ]]; then
-        echo -e "\033[1;33m[*] Setting up Termux storage...\033[0m"
-        termux-setup-storage
-        sleep 2
+check_updates() {
+    # Always force update if version differs (no comparisons needed)
+    local github_version=$(curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
+    
+    if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
+        echo -e "\033[1;33m[!] VERSION MISMATCH! Local: $SCRIPT_VERSION | GitHub: $github_version\033[0m"
+        force_update "$@"
+    else
+        echo -e "\033[1;32m[✓] Script is up-to-date ($SCRIPT_VERSION)\033[0m"
     fi
 }
 
-# ===================== SUBMENU FUNCTIONS =====================
-submenu() {
-    echo -e "\033[1;34m[+] Opening Themes Menu...\033[0m"
-    sleep 1
-    # Add your theme selection logic here
-    echo "Theme options would appear here"
-    read -p "Press Enter to return to main menu..."
-}
+# -------------------------------------------------------------------
+#  EXECUTION STARTS HERE - UNCOMMENT ONE OPTION:
+# -------------------------------------------------------------------
 
-blutter_suite() {
-    echo -e "\033[1;34m[+] Installing Blutter Suite...\033[0m"
-    sleep 1
-    # Add Blutter installation logic here
-    echo "Blutter installation would happen here"
-    read -p "Press Enter to return to main menu..."
-}
+# OPTION 1: ALWAYS CHECK AND AUTO-UPDATE (RECOMMENDED)
+check_updates "$@"
 
-radare2_suite() {
-    echo -e "\033[1;34m[+] Installing Radare2 Suite...\033[0m"
-    sleep 1
-    # Add Radare2 installation logic here
-    echo "Radare2 installation would happen here"
-    read -p "Press Enter to return to main menu..."
-}
-
-motd_prompt() {
-    echo -e "\033[1;34m[+] Configuring MOTD...\033[0m"
-    sleep 1
-    # Add MOTD configuration logic here
-    echo "MOTD configuration would happen here"
-    read -p "Press Enter to return to main menu..."
-}
-
-# ===================== MAIN MENU =====================
-main_menu() {
-    while true; do
-        # Check if dialog is installed
-        if ! command -v dialog &> /dev/null; then
-            # Simple text-based menu
-            echo -e "\n\033[1;35mTermux Setup Script v$SCRIPT_VERSION\033[0m"
-            echo "0) Themes"
-            echo "1) Blutter Suite"
-            echo "2) Radare2 Suite"
-            echo "3) Python Packages + Plugins"
-            echo "4) Backup Termux Environment"
-            echo "5) Restore Termux Environment"
-            echo "6) Wipe All Packages (Caution!)"
-            echo "7) Update Script Now"
-            echo "8) MOTD Settings"
-            echo "9) Exit Script"
-            read -p "Choose an option: " main_choice
-        else
-            # Dialog-based menu
-            main_choice=$(dialog --clear \
-                --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
-                --title "Main Menu" \
-                --menu "Choose an option:" 20 60 12 \
-                0 "Themes" \
-                1 "Blutter Suite" \
-                2 "Radare2 Suite" \
-                3 "Python Packages + Plugins" \
-                4 "Backup Termux Environment" \
-                5 "Restore Termux Environment" \
-                6 "Wipe All Packages (Caution!)" \
-                7 "Update Script Now" \
-                8 "MOTD Settings" \
-                9 "Exit Script" 3>&1 1>&2 2>&3)
-        fi
-        
-        clear
-        case "$main_choice" in
-            0) submenu ;;
-            1) blutter_suite ;;
-            2) radare2_suite ;;
-            3)
-                echo -e "\033[1;33m[+] Installing packages...\033[0m"
-                pkg update -y && pkg upgrade -y
-                pkg install -y git curl wget nano vim ruby php nodejs golang clang \
-                  zip unzip tar proot neofetch htop openssh nmap net-tools termux-api \
-                  termux-tools ffmpeg openjdk-17 tur-repo build-essential binutils
-                pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
-                echo -e "\033[1;32m[+] Installation complete!\033[0m"
-                sleep 2
-                ;;
-            4)
-                echo "[+] Backing up Termux..."
-                tar -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
-                echo -e "\033[1;32m[✓] Backup saved to /sdcard/termux-backup.tar.gz\033[0m"
-                sleep 2
-                ;;
-            5)
-                echo "[+] Restoring Termux..."
-                tar -zxf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files --recursive-unlink
-                echo -e "\033[1;32m[✓] Restore completed!\033[0m"
-                sleep 2
-                ;;
-            6)
-                echo "[!] WARNING: This will wipe your Termux environment!"
-                read -rp "Type YES to confirm: " confirm_wipe
-                if [[ "$confirm_wipe" == "YES" ]]; then
-                    echo "Resetting Termux..."
-                    rm -rf $HOME/* $HOME/.* /data/data/com.termux/files/usr/*
-                    exit 0
-                else
-                    echo "Cancelled."
-                fi
-                ;;
-            7)
-                update_script
-                ;;
-            8) motd_prompt ;;
-            9)
-                echo "Exiting..."
-                exit 0
-                ;;
-            *) 
-                echo "Invalid option"
-                sleep 1
-                ;;
-        esac
-    done
-}
-
-# ===================== STARTUP =====================
-check_termux_storage
-main_menu
+# OPTION 2: FORCE UPDATE WITHOUT CHECKING (USE WHEN BROKEN)
+# force_update "$@"
 
 
 # =========[ Original Functions ]=========
@@ -246,7 +110,7 @@ check_termux_storage() {
   fi
 }
 
-# =========[ Radare2 Suite ]=========
+# =========[ Tool Suites ]=========
 radare2_suite() {
   while true; do
     # Define color codes
@@ -457,7 +321,6 @@ radare2_suite() {
   done
 }
 
-# =========[ Blutter Suite ]=========
 blutter_suite() {
   while true; do
     local choice
@@ -520,29 +383,12 @@ blutter_suite() {
               local apk_dir="/storage/emulated/0/MT2/apks"
               mkdir -p "$apk_dir"
               
-              # Show directory contents to user
-              echo "[*] Checking for APK/APKS/XAPK files in: $apk_dir"
-              echo "[*] Current directory contents:"
-              ls -lh "$apk_dir" || {
-                echo "[!] Could not list directory contents"
-                read -p "Press [Enter] to continue..."
-                return 1
-              }
-              echo ""
-              
               local apk_file=$(find "$apk_dir" -maxdepth 1 -type f \( -name "*.apk" -o -name "*.apks" -o -name "*.xapk" \) -print -quit)
               
               if [ -z "$apk_file" ]; then
                 echo "[!] No APK/APKS/XAPK files found in $apk_dir"
-                echo ""
-                echo "To use APKEditor, you need to:"
-                echo "1. Place your APK/APKS/XAPK file in this directory:"
-                echo "   $apk_dir"
-                echo "2. Make sure the file has one of these extensions:"
-                echo "   .apk, .apks, or .xapk"
-                echo "3. Then run APKEditor again"
-                echo ""
-                read -p "Press [Enter] to return to menu..."
+                echo "Please place your files in $apk_dir first"
+                read -p "Press [Enter] to continue..."
                 return 1
               fi
               
@@ -802,3 +648,81 @@ submenu() {
     esac
   done
 }
+
+# =========[ Main Menu ]=========
+main_menu() {
+  while true; do
+    main_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
+      --title "Main Menu" \
+      --menu "Choose an option:" 20 60 12 \
+      0 "Themes" \
+      1 "Blutter Suite" \
+      2 "Radare2 Suite" \
+      3 "Python Packages + Plugins" \
+      4 "Backup Termux Environment" \
+      5 "Restore Termux Environment" \
+      6 "Wipe All Packages (Caution!)" \
+      7 "Update Script" \
+      8 "MOTD Settings" \
+      9 "Exit Script" 3>&1 1>&2 2>&3)
+
+    clear
+    case "$main_choice" in
+      0) submenu ;;
+      1) blutter_suite ;;
+      2) radare2_suite ;;
+      3)
+        echo -e "\e[1;33m[+] Installing packages...\e[0m"
+        yes | pkg update -y && yes | pkg upgrade -y
+        yes | pkg install -y git curl wget nano vim ruby php nodejs golang clang \
+          zip unzip tar proot neofetch htop openssh nmap net-tools termux-api \
+          termux-tools ffmpeg openjdk-17 tur-repo build-essential binutils
+        pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
+        echo -e "\e[1;32m[✓] Installation complete!\e[0m"
+        sleep 2
+        ;;
+      4)
+        echo "[+] Backing up Termux..."
+        tar -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
+        ;;
+      5)
+        echo "[+] Restoring Termux..."
+        tar -zxf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files --recursive-unlink
+        ;;
+      6)
+        echo "[!] WARNING: This will wipe your Termux environment!"
+        read -rp "Type YES to confirm: " confirm_wipe
+        if [[ "$confirm_wipe" == "YES" ]]; then
+          echo "Resetting Termux..."
+          rm -rf $HOME/* $HOME/.* /data/data/com.termux/files/usr/*
+          exit 0
+        else
+          echo "Cancelled."
+        fi
+        ;;
+      7) 
+        echo "[*] Checking for script updates..."
+        check_updates
+        result=$?
+        if [ "$result" -eq 2 ]; then
+          echo "[*] Restarting script with updated version..."
+          sleep 2
+          exec bash "$0"
+        else
+          echo "[*] No update needed or update failed. Returning to main menu in 3 seconds..."
+          sleep 3
+        fi
+        ;;
+      8) motd_prompt ;;
+      9)
+        echo "Exiting..."
+        exit 0
+        ;;
+      *) echo "Invalid option" ;;
+    esac
+  done
+}
+
+# =========[ Start Script ]=========
+check_termux_storage
+main_menu
