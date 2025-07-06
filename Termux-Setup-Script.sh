@@ -1,40 +1,38 @@
 #!/usr/bin/env bash
 # MUST match GitHub version exactly
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="0.8.0"
 
-# ===================== FOOLPROOF UPDATER =====================
+# ===================== TERMUX-SAFE UPDATER =====================
 update_script() {
-    echo -e "\033[1;36m[+] Force updating script from GitHub...\033[0m"
+    echo -e "\033[1;36m[+] Updating script from GitHub...\033[0m"
     
-    # Create temporary file with random suffix to avoid conflicts
-    tmp_script="$HOME/termux_script_update_$(date +%s).tmp"
-    timestamp=$(date +%s)
+    # Download to a temporary location in Termux home
+    tmp_script="$HOME/termux_script_update.tmp"
     
-    # Download with cache busting and timeout
-    if curl -L --fail --max-time 10 \
-        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh?t=$timestamp" \
+    if curl -L --max-time 10 --fail \
+        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
         -o "$tmp_script"; then
         
-        # Minimal validation - just check it's a bash script
-        if ! head -1 "$tmp_script" | grep -q '^#!/usr/bin/env bash'; then
-            echo -e "\033[1;31m[!] Downloaded file is not a valid bash script\033[0m"
+        # Verify we downloaded a valid script
+        if ! grep -q '^#!/' "$tmp_script" || ! grep -q 'SCRIPT_VERSION=' "$tmp_script"; then
+            echo -e "\033[1;31m[!] Invalid script downloaded - update failed\033[0m"
             rm -f "$tmp_script"
             return 1
         fi
-
-        # Get new version for display (but don't depend on it)
-        new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_script" | cut -d'"' -f2 2>/dev/null || echo "latest")
-
-        # Force replacement with atomic move
-        if mv -f "$tmp_script" "$0"; then
+        
+        # Get the new version
+        new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_script" | cut -d'"' -f2)
+        
+        # Replace current script
+        if mv "$tmp_script" "$0"; then
             chmod +x "$0"
-            echo -e "\033[1;32m[✓] Successfully updated to version $new_version\033[0m"
-            echo -e "\033[1;33m[*] Restarting script...\033[0m"
-            sleep 2
+            echo -e "\033[1;32m[✓] Successfully updated to v$new_version\033[0m"
+            echo -e "\033[1;33m[*] Restarting script to apply changes...\033[0m"
+            sleep 3
             exec bash "$0" "$@"
         else
-            echo -e "\033[1;31m[!] Failed to replace script (permission issues?)\033[0m"
-            echo -e "\033[1;33m[*] Try: mv -f '$tmp_script' '$0' && chmod +x '$0'\033[0m"
+            echo -e "\033[1;31m[!] Failed to replace script\033[0m"
+            echo -e "\033[1;33m[*] Try moving it manually: mv '$tmp_script' '$0'\033[0m"
             return 1
         fi
     else
@@ -52,24 +50,75 @@ check_termux_storage() {
     fi
 }
 
+# ===================== SUBMENU FUNCTIONS =====================
+submenu() {
+    echo -e "\033[1;34m[+] Opening Themes Menu...\033[0m"
+    sleep 1
+    # Add your theme selection logic here
+    echo "Theme options would appear here"
+    read -p "Press Enter to return to main menu..."
+}
+
+blutter_suite() {
+    echo -e "\033[1;34m[+] Installing Blutter Suite...\033[0m"
+    sleep 1
+    # Add Blutter installation logic here
+    echo "Blutter installation would happen here"
+    read -p "Press Enter to return to main menu..."
+}
+
+radare2_suite() {
+    echo -e "\033[1;34m[+] Installing Radare2 Suite...\033[0m"
+    sleep 1
+    # Add Radare2 installation logic here
+    echo "Radare2 installation would happen here"
+    read -p "Press Enter to return to main menu..."
+}
+
+motd_prompt() {
+    echo -e "\033[1;34m[+] Configuring MOTD...\033[0m"
+    sleep 1
+    # Add MOTD configuration logic here
+    echo "MOTD configuration would happen here"
+    read -p "Press Enter to return to main menu..."
+}
+
 # ===================== MAIN MENU =====================
 main_menu() {
     while true; do
-        main_choice=$(dialog --clear \
-            --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
-            --title "Main Menu" \
-            --menu "Choose an option:" 20 60 12 \
-            0 "Themes" \
-            1 "Blutter Suite" \
-            2 "Radare2 Suite" \
-            3 "Python Packages + Plugins" \
-            4 "Backup Termux Environment" \
-            5 "Restore Termux Environment" \
-            6 "Wipe All Packages (Caution!)" \
-            7 "Update Script Now" \
-            8 "MOTD Settings" \
-            9 "Exit Script" 3>&1 1>&2 2>&3)
-
+        # Check if dialog is installed
+        if ! command -v dialog &> /dev/null; then
+            # Simple text-based menu
+            echo -e "\n\033[1;35mTermux Setup Script v$SCRIPT_VERSION\033[0m"
+            echo "0) Themes"
+            echo "1) Blutter Suite"
+            echo "2) Radare2 Suite"
+            echo "3) Python Packages + Plugins"
+            echo "4) Backup Termux Environment"
+            echo "5) Restore Termux Environment"
+            echo "6) Wipe All Packages (Caution!)"
+            echo "7) Update Script Now"
+            echo "8) MOTD Settings"
+            echo "9) Exit Script"
+            read -p "Choose an option: " main_choice
+        else
+            # Dialog-based menu
+            main_choice=$(dialog --clear \
+                --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
+                --title "Main Menu" \
+                --menu "Choose an option:" 20 60 12 \
+                0 "Themes" \
+                1 "Blutter Suite" \
+                2 "Radare2 Suite" \
+                3 "Python Packages + Plugins" \
+                4 "Backup Termux Environment" \
+                5 "Restore Termux Environment" \
+                6 "Wipe All Packages (Caution!)" \
+                7 "Update Script Now" \
+                8 "MOTD Settings" \
+                9 "Exit Script" 3>&1 1>&2 2>&3)
+        fi
+        
         clear
         case "$main_choice" in
             0) submenu ;;
@@ -88,10 +137,14 @@ main_menu() {
             4)
                 echo "[+] Backing up Termux..."
                 tar -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
+                echo -e "\033[1;32m[✓] Backup saved to /sdcard/termux-backup.tar.gz\033[0m"
+                sleep 2
                 ;;
             5)
                 echo "[+] Restoring Termux..."
                 tar -zxf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files --recursive-unlink
+                echo -e "\033[1;32m[✓] Restore completed!\033[0m"
+                sleep 2
                 ;;
             6)
                 echo "[!] WARNING: This will wipe your Termux environment!"
@@ -112,7 +165,10 @@ main_menu() {
                 echo "Exiting..."
                 exit 0
                 ;;
-            *) echo "Invalid option" ;;
+            *) 
+                echo "Invalid option"
+                sleep 1
+                ;;
         esac
     done
 }
