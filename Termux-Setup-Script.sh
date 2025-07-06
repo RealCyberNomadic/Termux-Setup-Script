@@ -1,46 +1,54 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="0.6.0"  # MUST match GitHub version to prevent loops
+# Version will be automatically synced with GitHub
+SCRIPT_VERSION=$(curl -s https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
 
-# -------------------------------------------------------------------
-#  CORE UPDATE MECHANISM - NO TOUCHING BELOW FOR PROPER FUNCTIONING
-# -------------------------------------------------------------------
-force_update() {
-    echo -e "\033[1;36m[] FORCE UPDATING SCRIPT FROM GITHUB...\033[0m"
+# ===================== AUTO-UPDATE SYSTEM =====================
+update_and_restart() {
+    echo -e "\033[1;36m[+] Downloading latest version from GitHub...\033[0m"
     
-    # Download directly to the original script path
-    if curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" -o "$0"; then
-        chmod +x "$0"
-        echo -e "\033[1;32m[✓] UPDATE SUCCESS! Reloading...\033[0m"
-        sleep 2
-        exec "$0" "$@"
-    else
-        echo -e "\033[1;31m[✗] UPDATE FAILED! Check internet/URL.\033[0m"
+    # Create temporary update file
+    local tmp_file="${0}.new"
+    
+    # Download latest version
+    if ! curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" -o "$tmp_file"; then
+        echo -e "\033[1;31m[!] Download failed! Check internet connection.\033[0m"
+        rm -f "$tmp_file" 2>/dev/null
         return 1
     fi
+
+    # Verify downloaded script
+    if ! grep -q "SCRIPT_VERSION=" "$tmp_file"; then
+        echo -e "\033[1;31m[!] Invalid script downloaded - missing version info\033[0m"
+        rm -f "$tmp_file"
+        return 1
+    fi
+
+    # Make executable and replace current script
+    chmod +x "$tmp_file"
+    if ! mv "$tmp_file" "$0"; then
+        echo -e "\033[1;31m[!] Failed to replace script - try running with sudo\033[0m"
+        return 1
+    fi
+
+    echo -e "\033[1;32m[+] Successfully updated! Restarting...\033[0m"
+    sleep 1
+    exec "$0" "$@"
 }
 
-check_updates() {
-    # Always force update if version differs (no comparisons needed)
+# Check and update automatically on script start
+check_update() {
     local github_version=$(curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
     
+    if [[ -z "$github_version" ]]; then
+        echo -e "\033[1;33m[*] Couldn't check for updates - continuing with current version\033[0m"
+        return
+    fi
+
     if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
-        echo -e "\033[1;33m[!] VERSION MISMATCH! Local: $SCRIPT_VERSION | GitHub: $github_version\033[0m"
-        force_update "$@"
-    else
-        echo -e "\033[1;32m[✓] Script is up-to-date ($SCRIPT_VERSION)\033[0m"
+        echo -e "\033[1;33m[*] New version available - auto-updating...\033[0m"
+        update_and_restart "$@"
     fi
 }
-
-# -------------------------------------------------------------------
-#  EXECUTION STARTS HERE - UNCOMMENT ONE OPTION:
-# -------------------------------------------------------------------
-
-# OPTION 1: ALWAYS CHECK AND AUTO-UPDATE (RECOMMENDED)
-check_updates "$@"
-
-# OPTION 2: FORCE UPDATE WITHOUT CHECKING (USE WHEN BROKEN)
-# force_update "$@"
-
 
 # =========[ Original Functions ]=========
 motd_prompt() {
@@ -650,6 +658,7 @@ submenu() {
   done
 }
 
+
 # =========[ Main Menu ]=========
 main_menu() {
   while true; do
@@ -663,7 +672,7 @@ main_menu() {
       4 "Backup Termux Environment" \
       5 "Restore Termux Environment" \
       6 "Wipe All Packages (Caution!)" \
-      7 "Update Script" \
+      7 "Update Script Now" \
       8 "MOTD Settings" \
       9 "Exit Script" 3>&1 1>&2 2>&3)
 
@@ -673,13 +682,13 @@ main_menu() {
       1) blutter_suite ;;
       2) radare2_suite ;;
       3)
-        echo -e "\e[1;33m[+] Installing packages...\e[0m"
+        echo -e "\033[1;33m[+] Installing packages...\033[0m"
         yes | pkg update -y && yes | pkg upgrade -y
         yes | pkg install -y git curl wget nano vim ruby php nodejs golang clang \
           zip unzip tar proot neofetch htop openssh nmap net-tools termux-api \
           termux-tools ffmpeg openjdk-17 tur-repo build-essential binutils
         pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
-        echo -e "\e[1;32m[✓] Installation complete!\e[0m"
+        echo -e "\033[1;32m[+] Installation complete!\033[0m"
         sleep 2
         ;;
       4)
@@ -701,18 +710,9 @@ main_menu() {
           echo "Cancelled."
         fi
         ;;
-      7) 
-        echo "[*] Checking for script updates..."
-        check_updates
-        result=$?
-        if [ "$result" -eq 2 ]; then
-          echo "[*] Restarting script with updated version..."
-          sleep 2
-          exec bash "$0"
-        else
-          echo "[*] No update needed or update failed. Returning to main menu in 3 seconds..."
-          sleep 3
-        fi
+      7)
+        echo -e "\033[1;36m[+] Manually checking for updates...\033[0m"
+        update_and_restart "$@"
         ;;
       8) motd_prompt ;;
       9)
@@ -724,6 +724,7 @@ main_menu() {
   done
 }
 
-# =========[ Start Script ]=========
+# =========[ Script Start ]=========
 check_termux_storage
+check_update "$@"
 main_menu
