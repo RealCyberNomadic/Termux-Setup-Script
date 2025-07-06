@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # MUST match GitHub version exactly
-SCRIPT_VERSION="0.6.0"
+SCRIPT_VERSION="1.0.0"
 
 # ===================== FOOLPROOF UPDATER =====================
 update_script() {
