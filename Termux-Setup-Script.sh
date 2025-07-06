@@ -1,15 +1,35 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="1.0.0"  # Must match GitHub version
+SCRIPT_VERSION="2.1.1"  # Must match GitHub version
 
-# ===================== UPDATE SYSTEM =====================
-force_update() {
+# ===================== ROBUST UPDATE SYSTEM =====================
+update_script() {
     echo -e "\033[1;36m[+] Downloading latest version from GitHub...\033[0m"
     
-    if curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" -o "$0"; then
-        chmod +x "$0"
-        echo -e "\033[1;32m[+] Update successful! Reloading script...\033[0m"
-        sleep 2
-        exec "$0" "$@"
+    # Create secure temp file in Termux home
+    tmp_file="$HOME/termux_script_update.tmp"
+    
+    if curl -L --max-time 10 --fail \
+        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
+        -o "$tmp_file"; then
+        
+        # Validate downloaded script
+        if ! grep -q '^SCRIPT_VERSION=' "$tmp_file" || ! grep -q '^#!/' "$tmp_file"; then
+            echo -e "\033[1;31m[!] Invalid script downloaded - update failed\033[0m"
+            rm -f "$tmp_file"
+            return 1
+        fi
+        
+        # Replace current script
+        if mv "$tmp_file" "$0"; then
+            chmod +x "$0"
+            echo -e "\033[1;32m[✓] Update successful! Reloading script...\033[0m"
+            sleep 2
+            exec bash "$0" "$@"
+        else
+            echo -e "\033[1;31m[!] Failed to replace script\033[0m"
+            echo -e "\033[1;33m[*] Try moving manually: mv '$tmp_file' '$0'\033[0m"
+            return 1
+        fi
     else
         echo -e "\033[1;31m[!] Download failed! Check internet connection.\033[0m"
         return 1
@@ -28,10 +48,12 @@ check_updates() {
 
     if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
         echo -e "\033[1;33m[*] New version available: $github_version (Current: $SCRIPT_VERSION)\033[0m"
-        force_update "$@"
-        return 2  # Special code for successful update
+        update_script "$@"
+        return 2
+    else
+        echo -e "\033[1;32m[✓] Script is up-to-date ($SCRIPT_VERSION)\033[0m"
+        return 0
     fi
-    return 0
 }
 
 # =========[ Original Functions ]=========
