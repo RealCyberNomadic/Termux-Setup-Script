@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Version will be automatically synced with GitHub
-SCRIPT_VERSION=$(curl -s https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
+# Initial version - will be updated immediately if newer exists
+SCRIPT_VERSION="2.1.1"
 
 # ===================== AUTO-UPDATE SYSTEM =====================
 update_and_restart() {
@@ -23,6 +23,9 @@ update_and_restart() {
         return 1
     fi
 
+    # Get the actual version from the downloaded script
+    local new_version=$(grep -m 1 "SCRIPT_VERSION=" "$tmp_file" | cut -d '"' -f 2)
+    
     # Make executable and replace current script
     chmod +x "$tmp_file"
     if ! mv "$tmp_file" "$0"; then
@@ -30,14 +33,15 @@ update_and_restart() {
         return 1
     fi
 
-    echo -e "\033[1;32m[+] Successfully updated! Restarting...\033[0m"
+    echo -e "\033[1;32m[+] Successfully updated to v$new_version! Restarting...\033[0m"
     sleep 1
     exec "$0" "$@"
 }
 
-# Check and update automatically on script start
 check_update() {
-    local github_version=$(curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
+    # Get current version from GitHub
+    local github_content=$(curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh")
+    local github_version=$(echo "$github_content" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
     
     if [[ -z "$github_version" ]]; then
         echo -e "\033[1;33m[*] Couldn't check for updates - continuing with current version\033[0m"
@@ -45,8 +49,11 @@ check_update() {
     fi
 
     if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
-        echo -e "\033[1;33m[*] New version available - auto-updating...\033[0m"
+        echo -e "\033[1;33m[*] New version available (v$github_version) - auto-updating...\033[0m"
         update_and_restart "$@"
+    else
+        # Update our local version variable to match GitHub
+        SCRIPT_VERSION="$github_version"
     fi
 }
 
@@ -679,6 +686,7 @@ submenu() {
 # =========[ Main Menu ]=========
 main_menu() {
   while true; do
+    # Now using the properly set SCRIPT_VERSION variable
     main_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
       --title "Main Menu" \
       --menu "Choose an option:" 20 60 12 \
