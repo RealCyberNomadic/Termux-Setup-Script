@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="2.1.1"  # Must match GitHub version
+SCRIPT_VERSION="1.0.0"  # Must match GitHub version
 
 # ===================== UPDATE SYSTEM =====================
 force_update() {
