@@ -6,7 +6,7 @@ fetch_github_version() {
     local version=$(curl -s --max-time 5 \
         "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
         | grep -m1 '^SCRIPT_VERSION=' | cut -d'"' -f2)
-    echo "${version:-0.0.0}"  # Fallback if offline
+    echo "${version:-1.0.0}"  # Fallback if offline
 }
 
 # Initialize with GitHub's version
