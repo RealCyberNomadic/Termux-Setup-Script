@@ -1,40 +1,38 @@
 #!/usr/bin/env bash
 # MUST match GitHub version exactly
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="0.9.0"
 
-# ===================== FOOLPROOF UPDATER =====================
+# ===================== TERMUX-SAFE UPDATER =====================
 update_script() {
-    echo -e "\033[1;36m[+] Force updating script from GitHub...\033[0m"
+    echo -e "\033[1;36m[+] Updating script from GitHub...\033[0m"
     
-    # Create temporary file with random suffix to avoid conflicts
-    tmp_script="$HOME/termux_script_update_$(date +%s).tmp"
-    timestamp=$(date +%s)
+    # Download to a temporary location in Termux home
+    tmp_script="$HOME/termux_script_update.tmp"
     
-    # Download with cache busting and timeout
-    if curl -L --fail --max-time 10 \
-        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh?t=$timestamp" \
+    if curl -L --max-time 10 --fail \
+        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
         -o "$tmp_script"; then
         
-        # Minimal validation - just check it's a bash script
-        if ! head -1 "$tmp_script" | grep -q '^#!/usr/bin/env bash'; then
-            echo -e "\033[1;31m[!] Downloaded file is not a valid bash script\033[0m"
+        # Verify we downloaded a valid script
+        if ! grep -q '^#!/' "$tmp_script" || ! grep -q 'SCRIPT_VERSION=' "$tmp_script"; then
+            echo -e "\033[1;31m[!] Invalid script downloaded - update failed\033[0m"
             rm -f "$tmp_script"
             return 1
         fi
-
-        # Get new version for display (but don't depend on it)
-        new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_script" | cut -d'"' -f2 2>/dev/null || echo "latest")
-
-        # Force replacement with atomic move
-        if mv -f "$tmp_script" "$0"; then
+        
+        # Get the new version
+        new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_script" | cut -d'"' -f2)
+        
+        # Replace current script
+        if mv "$tmp_script" "$0"; then
             chmod +x "$0"
-            echo -e "\033[1;32m[✓] Successfully updated to version $new_version\033[0m"
-            echo -e "\033[1;33m[*] Restarting script...\033[0m"
-            sleep 2
+            echo -e "\033[1;32m[✓] Successfully updated to v$new_version\033[0m"
+            echo -e "\033[1;33m[*] Restarting script to apply changes...\033[0m"
+            sleep 3
             exec bash "$0" "$@"
         else
-            echo -e "\033[1;31m[!] Failed to replace script (permission issues?)\033[0m"
-            echo -e "\033[1;33m[*] Try: mv -f '$tmp_script' '$0' && chmod +x '$0'\033[0m"
+            echo -e "\033[1;31m[!] Failed to replace script\033[0m"
+            echo -e "\033[1;33m[*] Try moving it manually: mv '$tmp_script' '$0'\033[0m"
             return 1
         fi
     else
