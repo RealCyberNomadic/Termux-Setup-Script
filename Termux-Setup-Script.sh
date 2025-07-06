@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="2.1.1"  # Must match GitHub version
+SCRIPT_VERSION="0.9.0"  # Must match GitHub version
 
 # ===================== ROBUST UPDATE SYSTEM =====================
 update_script() {
