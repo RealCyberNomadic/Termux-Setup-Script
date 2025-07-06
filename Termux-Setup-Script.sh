@@ -1,61 +1,130 @@
 #!/usr/bin/env bash
-# Initial version - will be updated immediately if newer exists
-SCRIPT_VERSION="0.7.0"
 
-# ===================== AUTO-UPDATE SYSTEM =====================
-update_and_restart() {
-    echo -e "\033[1;36m[+] Downloading latest version from GitHub...\033[0m"
-    
-    # Create temporary update file
-    local tmp_file="${0}.new"
-    
-    # Download latest version
-    if ! curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" -o "$tmp_file"; then
-        echo -e "\033[1;31m[!] Download failed! Check internet connection.\033[0m"
-        rm -f "$tmp_file" 2>/dev/null
-        return 1
-    fi
-
-    # Verify downloaded script
-    if ! grep -q "SCRIPT_VERSION=" "$tmp_file"; then
-        echo -e "\033[1;31m[!] Invalid script downloaded - missing version info\033[0m"
-        rm -f "$tmp_file"
-        return 1
-    fi
-
-    # Get the actual version from the downloaded script
-    local new_version=$(grep -m 1 "SCRIPT_VERSION=" "$tmp_file" | cut -d '"' -f 2)
-    
-    # Make executable and replace current script
-    chmod +x "$tmp_file"
-    if ! mv "$tmp_file" "$0"; then
-        echo -e "\033[1;31m[!] Failed to replace script - try running with sudo\033[0m"
-        return 1
-    fi
-
-    echo -e "\033[1;32m[+] Successfully updated to v$new_version! Restarting...\033[0m"
-    sleep 1
-    exec "$0" "$@"
+# ===================== AUTO-VERSION SYSTEM =====================
+get_latest_version() {
+    local version=$(curl -s --max-time 5 "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" | 
+                   grep -m1 '^SCRIPT_VERSION=' | 
+                   cut -d'"' -f2)
+    echo "${version:-DEVELOPMENT}"
 }
 
-check_update() {
-    # Get current version from GitHub
-    local github_content=$(curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh")
-    local github_version=$(echo "$github_content" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
+# Initialize version from GitHub
+SCRIPT_VERSION=$(get_latest_version)
+
+# ===================== SELF-UPDATE MECHANISM =====================
+self_update() {
+    echo -e "\033[1;36m[+] Downloading latest version...\033[0m"
     
-    if [[ -z "$github_version" ]]; then
-        echo -e "\033[1;33m[*] Couldn't check for updates - continuing with current version\033[0m"
-        return
+    local tmp_script="${0}.new"
+    local github_url="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
+    
+    # Download with validation
+    if ! curl -L --max-time 10 "$github_url" -o "$tmp_script" || 
+       ! grep -q '^SCRIPT_VERSION=' "$tmp_script"; then
+        echo -e "\033[1;31m[!] Download failed or invalid script\033[0m"
+        rm -f "$tmp_script" 2>/dev/null
+        return 1
     fi
 
-    if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
-        echo -e "\033[1;33m[*] New version available (v$github_version) - auto-updating...\033[0m"
-        update_and_restart "$@"
+    # Verify and replace
+    local new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_script" | cut -d'"' -f2)
+    if chmod +x "$tmp_script" && mv "$tmp_script" "$0"; then
+        echo -e "\033[1;32m[✓] Updated to v$new_version\033[0m"
+        sleep 1
+        exec "$0" "$@"
     else
-        # Update our local version variable to match GitHub
-        SCRIPT_VERSION="$github_version"
+        echo -e "\033[1;31m[!] Install failed (try: sudo $0)\033[0m"
+        return 1
     fi
 }
+
+# ===================== STORAGE CHECK =====================
+check_termux_storage() {
+    if [[ ! -d ~/storage ]]; then
+        echo -e "\033[1;33m[*] Setting up Termux storage...\033[0m"
+        termux-setup-storage
+        sleep 2
+    fi
+}
+
+# ===================== MAIN MENU =====================
+main_menu() {
+    while true; do
+        main_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
+          --title "Main Menu" \
+          --menu "Choose an option:" 20 60 12 \
+          0 "Themes" \
+          1 "Blutter Suite" \
+          2 "Radare2 Suite" \
+          3 "Python Packages + Plugins" \
+          4 "Backup Termux Environment" \
+          5 "Restore Termux Environment" \
+          6 "Wipe All Packages (Caution!)" \
+          7 "Update Script Now" \
+          8 "MOTD Settings" \
+          9 "Exit Script" 3>&1 1>&2 2>&3)
+
+        clear
+        case "$main_choice" in
+            0) submenu ;;
+            1) blutter_suite ;;
+            2) radare2_suite ;;
+            3)
+                echo -e "\033[1;33m[+] Installing packages...\033[0m"
+                yes | pkg update -y && yes | pkg upgrade -y
+                yes | pkg install -y git curl wget nano vim ruby php nodejs golang clang \
+                  zip unzip tar proot neofetch htop openssh nmap net-tools termux-api \
+                  termux-tools ffmpeg openjdk-17 tur-repo build-essential binutils
+                pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
+                echo -e "\033[1;32m[+] Installation complete!\033[0m"
+                sleep 2
+                ;;
+            4)
+                echo "[+] Backing up Termux..."
+                tar -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
+                ;;
+            5)
+                echo "[+] Restoring Termux..."
+                tar -zxf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files --recursive-unlink
+                ;;
+            6)
+                echo "[!] WARNING: This will wipe your Termux environment!"
+                read -rp "Type YES to confirm: " confirm_wipe
+                if [[ "$confirm_wipe" == "YES" ]]; then
+                    echo "Resetting Termux..."
+                    rm -rf $HOME/* $HOME/.* /data/data/com.termux/files/usr/*
+                    exit 0
+                else
+                    echo "Cancelled."
+                fi
+                ;;
+            7)
+                self_update
+                ;;
+            8) motd_prompt ;;
+            9)
+                echo "Exiting..."
+                exit 0
+                ;;
+            *) echo "Invalid option" ;;
+        esac
+    done
+}
+
+# ===================== STARTUP =====================
+# Background version check
+{
+    current=$SCRIPT_VERSION
+    latest=$(get_latest_version)
+    
+    if [[ "$current" != "$latest" && "$latest" != "DEVELOPMENT" ]]; then
+        echo -e "\n\033[1;33m[!] New version v$latest available (Option 7 to update)\033[0m"
+        sleep 3
+    fi
+} &
+
+check_termux_storage
+main_menu
 
 # =========[ Original Functions ]=========
 motd_prompt() {
@@ -681,75 +750,3 @@ submenu() {
     esac
   done
 }
-
-
-# =========[ Main Menu ]=========
-main_menu() {
-  while true; do
-    # Now using the properly set SCRIPT_VERSION variable
-    main_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
-      --title "Main Menu" \
-      --menu "Choose an option:" 20 60 12 \
-      0 "Themes" \
-      1 "Blutter Suite" \
-      2 "Radare2 Suite" \
-      3 "Python Packages + Plugins" \
-      4 "Backup Termux Environment" \
-      5 "Restore Termux Environment" \
-      6 "Wipe All Packages (Caution!)" \
-      7 "Update Script Now" \
-      8 "MOTD Settings" \
-      9 "Exit Script" 3>&1 1>&2 2>&3)
-
-    clear
-    case "$main_choice" in
-      0) submenu ;;
-      1) blutter_suite ;;
-      2) radare2_suite ;;
-      3)
-        echo -e "\033[1;33m[+] Installing packages...\033[0m"
-        yes | pkg update -y && yes | pkg upgrade -y
-        yes | pkg install -y git curl wget nano vim ruby php nodejs golang clang \
-          zip unzip tar proot neofetch htop openssh nmap net-tools termux-api \
-          termux-tools ffmpeg openjdk-17 tur-repo build-essential binutils
-        pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
-        echo -e "\033[1;32m[+] Installation complete!\033[0m"
-        sleep 2
-        ;;
-      4)
-        echo "[+] Backing up Termux..."
-        tar -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
-        ;;
-      5)
-        echo "[+] Restoring Termux..."
-        tar -zxf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files --recursive-unlink
-        ;;
-      6)
-        echo "[!] WARNING: This will wipe your Termux environment!"
-        read -rp "Type YES to confirm: " confirm_wipe
-        if [[ "$confirm_wipe" == "YES" ]]; then
-          echo "Resetting Termux..."
-          rm -rf $HOME/* $HOME/.* /data/data/com.termux/files/usr/*
-          exit 0
-        else
-          echo "Cancelled."
-        fi
-        ;;
-      7)
-        echo -e "\033[1;36m[+] Manually checking for updates...\033[0m"
-        update_and_restart "$@"
-        ;;
-      8) motd_prompt ;;
-      9)
-        echo "Exiting..."
-        exit 0
-        ;;
-      *) echo "Invalid option" ;;
-    esac
-  done
-}
-
-# =========[ Script Start ]=========
-check_termux_storage
-check_update "$@"
-main_menu
