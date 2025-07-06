@@ -110,7 +110,7 @@ check_termux_storage() {
   fi
 }
 
-# =========[ Tool Suites ]=========
+# =========[ Radare2 Suite ]=========
 radare2_suite() {
   while true; do
     # Define color codes
@@ -321,6 +321,7 @@ radare2_suite() {
   done
 }
 
+# =========[ Blutter Suite ]=========
 blutter_suite() {
   while true; do
     local choice
