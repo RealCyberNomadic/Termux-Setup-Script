@@ -1,38 +1,46 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="0.5.0" # Must match GitHub version
+SCRIPT_VERSION="2.1.1"  # MUST match GitHub version to prevent loops
 
-# ===================== UPDATE SYSTEM =====================
+# -------------------------------------------------------------------
+#  CORE UPDATE MECHANISM - NO TOUCHING BELOW FOR PROPER FUNCTIONING
+# -------------------------------------------------------------------
 force_update() {
-    echo -e "\033[1;36m[+] Downloading latest version from GitHub...\033[0m"
+    echo -e "\033[1;36m[] FORCE UPDATING SCRIPT FROM GITHUB...\033[0m"
     
+    # Download directly to the original script path
     if curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" -o "$0"; then
         chmod +x "$0"
-        echo -e "\033[1;32m[+] Update successful! Reloading script...\033[0m"
+        echo -e "\033[1;32m[✓] UPDATE SUCCESS! Reloading...\033[0m"
         sleep 2
         exec "$0" "$@"
     else
-        echo -e "\033[1;31m[!] Download failed! Check internet connection.\033[0m"
+        echo -e "\033[1;31m[✗] UPDATE FAILED! Check internet/URL.\033[0m"
         return 1
     fi
 }
 
 check_updates() {
-    echo -e "\033[1;35m[*] Checking GitHub for updates...\033[0m"
-    local github_content=$(curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh")
-    local github_version=$(echo "$github_content" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
-
-    if [[ -z "$github_version" ]]; then
-        echo -e "\033[1;31m[!] Couldn't verify version! GitHub may be down.\033[0m"
-        return 1
-    fi
-
+    # Always force update if version differs (no comparisons needed)
+    local github_version=$(curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
+    
     if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
-        echo -e "\033[1;33m[*] New version available: $github_version (Current: $SCRIPT_VERSION)\033[0m"
+        echo -e "\033[1;33m[!] VERSION MISMATCH! Local: $SCRIPT_VERSION | GitHub: $github_version\033[0m"
         force_update "$@"
-        return 2  # Special code for successful update
+    else
+        echo -e "\033[1;32m[✓] Script is up-to-date ($SCRIPT_VERSION)\033[0m"
     fi
-    return 0
 }
+
+# -------------------------------------------------------------------
+#  EXECUTION STARTS HERE - UNCOMMENT ONE OPTION:
+# -------------------------------------------------------------------
+
+# OPTION 1: ALWAYS CHECK AND AUTO-UPDATE (RECOMMENDED)
+check_updates "$@"
+
+# OPTION 2: FORCE UPDATE WITHOUT CHECKING (USE WHEN BROKEN)
+# force_update "$@"
+
 
 # =========[ Original Functions ]=========
 motd_prompt() {
@@ -425,7 +433,7 @@ blutter_suite() {
                 mkdir -p "/storage/emulated/0/MT2/apks/"
                 
                 # Modified keystore filename input to show .jks extension
-                                KEYSTORE_NAME=$(dialog --inputbox "Enter keystore filename (include .jks extension):" 8 40 "mykeystore_$(date +%s).jks" 3>&1 1>&2 2>&3)
+                KEYSTORE_NAME=$(dialog --inputbox "Enter keystore filename (include .jks extension):" 8 40 "mykeystore_$(date +%s).jks" 3>&1 1>&2 2>&3)
                 
                 if [[ ! "$KEYSTORE_NAME" =~ \.jks$ ]]; then
                     KEYSTORE_NAME="${KEYSTORE_NAME}.jks"
@@ -664,13 +672,13 @@ main_menu() {
       1) blutter_suite ;;
       2) radare2_suite ;;
       3)
-        echo -e "\033[1;33m[+] Installing packages...\033[0m"
+        echo -e "\e[1;33m[+] Installing packages...\e[0m"
         yes | pkg update -y && yes | pkg upgrade -y
         yes | pkg install -y git curl wget nano vim ruby php nodejs golang clang \
           zip unzip tar proot neofetch htop openssh nmap net-tools termux-api \
           termux-tools ffmpeg openjdk-17 tur-repo build-essential binutils
         pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
-        echo -e "\033[1;32m[+] Installation complete!\033[0m"
+        echo -e "\e[1;32m[✓] Installation complete!\e[0m"
         sleep 2
         ;;
       4)
@@ -692,23 +700,18 @@ main_menu() {
           echo "Cancelled."
         fi
         ;;
-      7)
-        echo -e "\033[1;36m[*] Checking for updates...\033[0m"
-        check_updates  # Auto-update if available
-        case $? in
-          0)
-            echo -e "\033[1;32m[+] Script is up-to-date ($SCRIPT_VERSION)\033[0m"
-            sleep 2
-            ;;
-          1)
-            echo -e "\033[1;31m[!] Update check failed. Try again later.\033[0m"
-            sleep 2
-            ;;
-          2)
-            # Script will have already restarted if update succeeded
-            exit 0
-            ;;
-        esac
+      7) 
+        echo "[*] Checking for script updates..."
+        check_updates
+        result=$?
+        if [ "$result" -eq 2 ]; then
+          echo "[*] Restarting script with updated version..."
+          sleep 2
+          exec bash "$0"
+        else
+          echo "[*] No update needed or update failed. Returning to main menu in 3 seconds..."
+          sleep 3
+        fi
         ;;
       8) motd_prompt ;;
       9)
