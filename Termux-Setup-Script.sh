@@ -2,7 +2,7 @@
 
 # ===================== VERSION SYSTEM =====================
 get_clean_version() {
-    # Extract only the version numbers (e.g. "2.1.1") from GitHub
+    # Extract only the version numbers (e.g. "0.8.0") from GitHub
     local version=$(curl -s --max-time 5 \
         "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" |
         grep -m1 '^SCRIPT_VERSION=' |
