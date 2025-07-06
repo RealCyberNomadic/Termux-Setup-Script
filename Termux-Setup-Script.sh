@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Initial version - will be updated immediately if newer exists
-SCRIPT_VERSION="2.1.1"
+SCRIPT_VERSION="0.7.0"
 
 # ===================== AUTO-UPDATE SYSTEM =====================
 update_and_restart() {
