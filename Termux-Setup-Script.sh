@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="3.0.1"  # This will be automatically updated
+SCRIPT_VERSION="2.1.0"  # This will be automatically updated
 
 # Function to compare version numbers
 version_compare() {
@@ -158,37 +158,238 @@ check_termux_storage() {
 
 # =========[ Tool Suites ]=========
 radare2_suite() {
-  local choice
+  # Define color codes
+  RED='\033[1;31m'
+  GREEN='\033[1;32m'
+  YELLOW='\033[1;33m'
+  ORANGE='\033[38;5;208m'
+  RESET='\033[0m'
+  
+  # Build menu options dynamically
+  local menu_options=()
+  local option_counter=1
+
+  # Radare2 options
   if [ -d "$HOME/radare2" ]; then
-    choice=$(dialog --title "Radare2 Suite" \
-      --menu "Radare2 is installed. Choose an option:" 20 60 6 \
-      1 "Install Radare2" \
-      2 "Hbctool (Asm/Disasm)" \
-      3 "Return to Main Menu" 3>&1 1>&2 2>&3)
+    menu_options+=("$option_counter" "Update & Clean Reinstall Radare2")
+    radare_update_option=$option_counter
+    ((option_counter++))
   else
-    choice=$(dialog --title "Radare2 Suite" \
-      --menu "Radare2 not detected. Choose an option:" 10 50 1 \
-      1 "Install Radare2" 3>&1 1>&2 2>&3)
+    menu_options+=("$option_counter" "Install Radare2")
+    radare_install_option=$option_counter
+    ((option_counter++))
   fi
 
+  # KeySigner options
+  if [ -d "$HOME/keysigner" ]; then
+    menu_options+=("$option_counter" "Update & Clean Reinstall KeySigner")
+    keysigner_update_option=$option_counter
+    ((option_counter++))
+  else
+    menu_options+=("$option_counter" "Install KeySigner")
+    keysigner_install_option=$option_counter
+    ((option_counter++))
+  fi
+
+  # SigTool options
+  if [ -d "$HOME/sigtool" ]; then
+    menu_options+=("$option_counter" "Update & Clean Reinstall SigTool")
+    sigtool_update_option=$option_counter
+    ((option_counter++))
+  else
+    menu_options+=("$option_counter" "Install SigTool")
+    sigtool_install_option=$option_counter
+    ((option_counter++))
+  fi
+
+  # Always show Hbctool and Return options
+  menu_options+=("$option_counter" "Install/Update Hbctool")
+  hbctool_option=$option_counter
+  ((option_counter++))
+  
+  menu_options+=("$option_counter" "Return to Main Menu")
+  return_option=$option_counter
+
+  # Display menu
+  choice=$(dialog --title "Radare2 Suite" \
+    --menu "Choose an option:" 20 60 10 \
+    "${menu_options[@]}" 3>&1 1>&2 2>&3)
+  
   clear
   case "$choice" in
-    1)
+    $radare_install_option)
       echo "[+] Installing Radare2..."
       pkg install -y build-essential binutils git
-      cd $HOME
-      [ -d radare2 ] || git clone https://github.com/radareorg/radare2
-      cd radare2 && git reset --hard && git pull && sh sys/install.sh
+      git clone https://github.com/radareorg/radare2 "$HOME/radare2"
+      cd "$HOME/radare2" && sh sys/install.sh
       r2pm update && r2pm -ci r2ghidra
       pip install r2pipe
+      echo -e "${GREEN}[✔] Radare2 installed successfully!${RESET}"
       ;;
-    2)
-      echo "[+] Installing hbctool..."
-      cd $HOME
-      wget -O hbctool-0.1.5-96-py3-none-any.whl https://github.com/Kirlif/HBC-Tool/releases/download/96/hbctool-0.1.5-96-py3-none-any.whl
-      pip install --force-reinstall hbctool-0.1.5-96-py3-none-any.whl
+
+    $radare_update_option)
+      echo -e "${RED}Checking for Updates...${RESET}"
+      cd "$HOME/radare2"
+      git remote update
+      LOCAL_COMMIT=$(git rev-parse --short HEAD)
+      REMOTE_COMMIT=$(git rev-parse --short @{u})
+
+      if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
+        echo -e "${GREEN}[✔] No need to update - same version ($LOCAL_COMMIT)${RESET}"
+        sleep 5
+      else
+        echo -e "Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT"
+        echo -e "${ORANGE}Installing Updates...${RESET}"
+        
+        find "$HOME/radare2" -type f -print0 | xargs -0 touch
+        git reset --hard origin/master
+        git clean -fdx
+        git pull
+        sh sys/install.sh
+        r2pm update && r2pm -ci r2ghidra
+        find "$HOME/radare2" -type f -print0 | xargs -0 touch
+        
+        echo -e "${GREEN}[✔] Updated to Version $REMOTE_COMMIT${RESET}"
+        sleep 5
+      fi
       ;;
-    3) return ;;
+
+    $keysigner_install_option)
+      echo "[+] Installing KeySigner..."
+      pkg install -y python openjdk-17 apksigner openssl-tool
+      git clone https://github.com/muhammadrizwan87/keysigner.git "$HOME/keysigner"
+      cd "$HOME/keysigner" && pip install build && python -m build
+      pip install --force-reinstall dist/*.whl
+      echo -e "${GREEN}[✔] KeySigner installed successfully!${RESET}"
+      ;;
+
+    $keysigner_update_option)
+      echo -e "${RED}Checking for Updates...${RESET}"
+      cd "$HOME/keysigner"
+      git remote update
+      LOCAL_COMMIT=$(git rev-parse --short HEAD)
+      REMOTE_COMMIT=$(git rev-parse --short @{u})
+
+      if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
+        echo -e "${GREEN}[✔] No need to update - same version ($LOCAL_COMMIT)${RESET}"
+        sleep 5
+      else
+        echo -e "Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT"
+        echo -e "${ORANGE}Installing Updates...${RESET}"
+        
+        find "$HOME/keysigner" -type f -print0 | xargs -0 touch
+        git reset --hard origin/master
+        git clean -fdx
+        git pull
+        pip install build && python -m build
+        pip install --force-reinstall dist/*.whl
+        find "$HOME/keysigner" -type f -print0 | xargs -0 touch
+        
+        echo -e "${GREEN}[✔] Updated to Version $REMOTE_COMMIT${RESET}"
+        sleep 5
+      fi
+      ;;
+
+    $sigtool_install_option)
+      echo "[+] Installing SigTool..."
+      pkg install -y python openjdk-17 aapt openssl-tool
+      git clone https://github.com/muhammadrizwan87/sigtool.git "$HOME/sigtool"
+      cd "$HOME/sigtool" && pip install build && python -m build
+      pip install --force-reinstall dist/*.whl
+      echo -e "${GREEN}[✔] SigTool installed successfully!${RESET}"
+      ;;
+
+    $sigtool_update_option)
+      echo -e "${RED}Checking for Updates...${RESET}"
+      cd "$HOME/sigtool"
+      git remote update
+      LOCAL_COMMIT=$(git rev-parse --short HEAD)
+      REMOTE_COMMIT=$(git rev-parse --short @{u})
+
+      if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
+        echo -e "${GREEN}[✔] No need to update - same version ($LOCAL_COMMIT)${RESET}"
+        sleep 5
+      else
+        echo -e "Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT"
+        echo -e "${ORANGE}Installing Updates...${RESET}"
+        
+        find "$HOME/sigtool" -type f -print0 | xargs -0 touch
+        git reset --hard origin/master
+        git clean -fdx
+        git pull
+        pip install build && python -m build
+        pip install --force-reinstall dist/*.whl
+        find "$HOME/sigtool" -type f -print0 | xargs -0 touch
+        
+        echo -e "${GREEN}[✔] Updated to Version $REMOTE_COMMIT${RESET}"
+        sleep 5
+      fi
+      ;;
+
+    $hbctool_option)
+      echo -e "${RED}Checking Hbctool Status...${RESET}"
+      
+      # Create temporary file for version comparison
+      TEMP_WHL=$(mktemp)
+      
+      # Download Hbctool wheel
+      if wget -q -O "$TEMP_WHL" https://github.com/Kirlif/HBC-Tool/releases/download/96/hbctool-0.1.5-96-py3-none-any.whl; then
+        # Compare with existing file if it exists
+        if [ -f "$HOME/hbctool-0.1.5-96-py3-none-any.whl" ]; then
+          if cmp -s "$HOME/hbctool-0.1.5-96-py3-none-any.whl" "$TEMP_WHL"; then
+            echo -e "${GREEN}[✔] Hbctool is up to date${RESET}"
+            rm "$TEMP_WHL"
+            INSTALLED_WHL=0
+          else
+            echo -e "${ORANGE}[!] New Hbctool version available${RESET}"
+            mv "$TEMP_WHL" "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+            INSTALLED_WHL=1
+          fi
+        else
+          echo -e "${GREEN}[+] Installing Hbctool...${RESET}"
+          mv "$TEMP_WHL" "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+          INSTALLED_WHL=1
+        fi
+        
+        # Install if new version or first installation
+        if [ "$INSTALLED_WHL" -eq 1 ]; then
+          pip install --force-reinstall "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+          touch "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+        fi
+      else
+        echo -e "${RED}[-] Failed to download Hbctool${RESET}"
+        rm -f "$TEMP_WHL"
+      fi
+      
+      # Download hbclabel.py
+      TEMP_LABEL=$(mktemp)
+      if wget -q -O "$TEMP_LABEL" https://raw.githubusercontent.com/Kirlif/Python-Stuff/main/hbclabel.py; then
+        # Compare with existing file if it exists
+        if [ -f "$HOME/hbclabel.py" ]; then
+          if cmp -s "$HOME/hbclabel.py" "$TEMP_LABEL"; then
+            echo -e "${GREEN}[✔] hbclabel.py is up to date${RESET}"
+            rm "$TEMP_LABEL"
+          else
+            echo -e "${ORANGE}[!] Updating hbclabel.py...${RESET}"
+            mv "$TEMP_LABEL" "$HOME/hbclabel.py"
+            chmod +x "$HOME/hbclabel.py"
+            touch "$HOME/hbclabel.py"
+          fi
+        else
+          echo -e "${GREEN}[+] Installing hbclabel.py...${RESET}"
+          mv "$TEMP_LABEL" "$HOME/hbclabel.py"
+          chmod +x "$HOME/hbclabel.py"
+          touch "$HOME/hbclabel.py"
+        fi
+      else
+        echo -e "${RED}[-] Failed to download hbclabel.py${RESET}"
+        rm -f "$TEMP_LABEL"
+      fi
+      
+      sleep 5
+      ;;
+
+    $return_option) return ;;
   esac
 }
 
@@ -200,13 +401,15 @@ blutter_suite() {
         --menu "Blutter is installed. Choose an option:" 15 50 4 \
         1 "APKEditor" \
         2 "Install Blutter" \
-        3 "Return to MainMenu" 3>&1 1>&2 2>&3)
+        3 "Hermes (Decompile & Disasm)" \
+        4 "Return to MainMenu" 3>&1 1>&2 2>&3)
     else
       choice=$(dialog --title "Blutter Suite" \
         --menu "Blutter not detected. Choose an option:" 10 50 4 \
         1 "APKEditor" \
         2 "Install Blutter" \
-        3 "Return to MainMenu" 3>&1 1>&2 2>&3)
+        3 "Hermes (Decompile & Disasm)" \
+        4 "Return to MainMenu" 3>&1 1>&2 2>&3)
     fi
 
     clear
@@ -304,7 +507,6 @@ blutter_suite() {
                 # Modified keystore filename input to show .jks extension
                 KEYSTORE_NAME=$(dialog --inputbox "Enter keystore filename (include .jks extension):" 8 40 "mykeystore_$(date +%s).jks" 3>&1 1>&2 2>&3)
                 
-                # Ensure the filename ends with .jks
                 if [[ ! "$KEYSTORE_NAME" =~ \.jks$ ]]; then
                     KEYSTORE_NAME="${KEYSTORE_NAME}.jks"
                 fi
@@ -437,6 +639,18 @@ blutter_suite() {
         read -p "Press [Enter] to continue..."
         ;;
       3)
+        if [ -d "$HOME/blutter-termux" ]; then
+          echo "[*] Installing Hermes-Dec..."
+          pkg install -y python pip clang
+          cd $HOME && git clone https://github.com/P1sec/hermes-dec.git
+          pip install --upgrade git+https://github.com/P1sec/hermes-dec.git
+          read -p "Press [Enter] to continue..."
+        else
+          echo "[!] Blutter not installed. Please install Blutter first."
+          read -p "Press [Enter] to continue..."
+        fi
+        ;;
+      4)
         return
         ;;
     esac
@@ -449,12 +663,50 @@ submenu() {
     theme_choice=$(dialog --clear --backtitle "Theme Manager" \
       --title "Theme Options" \
       --menu "Select a theme action:" 20 60 10 \
-      A "AutoSuggestions + Highlighting Add-ons" \
-      B "Return to Main Menu" 3>&1 1>&2 2>&3)
+      A "Rxfetch Theme" \
+      B "T-Header Theme" \
+      C "Termux-OS Theme" \
+      D "Powerlevel10k Theme" \
+      E "Qurxin + Dependencies Theme" \
+      F "AutoSuggestions + Highlighting Add-ons" \
+      G "Return to Main Menu" 3>&1 1>&2 2>&3)
 
     clear
     case "$theme_choice" in
       A|a)
+        echo "Installing myTermux Theme..."
+        pkg install -y git bc
+        cd $HOME && git clone --depth=1 https://github.com/mayTermux/myTermux.git
+        cd myTermux && ./install.sh
+        ;;
+      B|b)
+        echo "Installing T-Header Theme..."
+        git clone https://github.com/remo7777/T-Header
+        cd T-Header && bash t-header.sh
+        ;;
+      C|c)
+        echo "Installing Termux-OS Theme..."
+        git clone https://github.com/h4ck3r0/Termux-os
+        cd Termux-os && bash os.sh
+        ;;
+      D|d)
+        echo "Installing Powerlevel10k Zsh Theme..."
+        pkg install zsh git -y
+        git clone --depth=1 https://gitee.com/romkatv/powerlevel10k.git ~/powerlevel10k
+        echo 'source ~/powerlevel10k/powerlevel10k.zsh-theme' >>~/.zshrc
+        ;;
+      E|e)
+        echo "Installing Qurxin + Dependencies..."
+        pkg update && pkg upgrade -y
+        pkg install git python mpv figlet -y
+        pip install lolcat
+        git clone https://github.com/fikrado/qurxin
+        cd qurxin || exit
+        mkdir -p ~/.themes
+        cp -r Qurxin* ~/.themes/
+        figlet Qurxin | lolcat
+        ;;
+      F|f)
         echo "Installing Zsh Add-ons..."
         pkg install -y zsh git curl
         export ZSH="$HOME/.oh-my-zsh"
@@ -464,7 +716,7 @@ submenu() {
         git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
         sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
         ;;
-      D|d) return ;;
+      G|g) return ;;
     esac
   done
 }
