@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # MUST match GitHub version exactly
-SCRIPT_VERSION="0.8.0"
+SCRIPT_VERSION="0.6.0"
 
 # ===================== TERMUX-SAFE UPDATER =====================
 update_script() {
