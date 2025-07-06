@@ -1,35 +1,46 @@
 #!/usr/bin/env bash
 
-# ===================== AUTO-VERSION SYSTEM =====================
-get_latest_version() {
-    local version=$(curl -s --max-time 5 "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" | 
-                   grep -m1 '^SCRIPT_VERSION=' | 
-                   cut -d'"' -f2)
-    echo "${version:-DEVELOPMENT}"
+# ===================== VERSION SYSTEM =====================
+get_clean_version() {
+    # Extract only the version numbers (e.g. "2.1.1") from GitHub
+    local version=$(curl -s --max-time 5 \
+        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" |
+        grep -m1 '^SCRIPT_VERSION=' |
+        grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
+    echo "${version:-0.0.0}"  # Fallback if offline
 }
 
-# Initialize version from GitHub
-SCRIPT_VERSION=$(get_latest_version)
+CLEAN_VERSION=$(get_clean_version)
 
-# ===================== SELF-UPDATE MECHANISM =====================
-self_update() {
+# ===================== FAILSAFE UPDATE =====================
+update_script() {
     echo -e "\033[1;36m[+] Downloading latest version...\033[0m"
     
-    local tmp_script="${0}.new"
-    local github_url="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
+    # Create secure temporary file
+    tmp_file=$(mktemp 2>/dev/null || echo "${0}.tmp")
     
     # Download with validation
-    if ! curl -L --max-time 10 "$github_url" -o "$tmp_script" || 
-       ! grep -q '^SCRIPT_VERSION=' "$tmp_script"; then
-        echo -e "\033[1;31m[!] Download failed or invalid script\033[0m"
-        rm -f "$tmp_script" 2>/dev/null
+    if ! curl -L --max-time 10 --fail \
+        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
+        -o "$tmp_file"; then
+        echo -e "\033[1;31m[!] Download failed - check internet\033[0m"
+        rm -f "$tmp_file"
         return 1
     fi
 
-    # Verify and replace
-    local new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_script" | cut -d'"' -f2)
-    if chmod +x "$tmp_script" && mv "$tmp_script" "$0"; then
-        echo -e "\033[1;32m[✓] Updated to v$new_version\033[0m"
+    # Verify script structure
+    if ! [[ -s "$tmp_file" ]] || ! grep -q '^#!/' "$tmp_file"; then
+        echo -e "\033[1;31m[!] Invalid script downloaded\033[0m"
+        rm -f "$tmp_file"
+        return 1
+    fi
+
+    # Get the actual new version
+    new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_file" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
+
+    # Replace current script
+    if chmod +x "$tmp_file" && mv "$tmp_file" "$0"; then
+        echo -e "\033[1;32m[✓] Successfully updated to v$new_version\033[0m"
         sleep 1
         exec "$0" "$@"
     else
@@ -50,19 +61,21 @@ check_termux_storage() {
 # ===================== MAIN MENU =====================
 main_menu() {
     while true; do
-        main_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
-          --title "Main Menu" \
-          --menu "Choose an option:" 20 60 12 \
-          0 "Themes" \
-          1 "Blutter Suite" \
-          2 "Radare2 Suite" \
-          3 "Python Packages + Plugins" \
-          4 "Backup Termux Environment" \
-          5 "Restore Termux Environment" \
-          6 "Wipe All Packages (Caution!)" \
-          7 "Update Script Now" \
-          8 "MOTD Settings" \
-          9 "Exit Script" 3>&1 1>&2 2>&3)
+        # This now shows ONLY clean version (e.g. "v2.1.1")
+        main_choice=$(dialog --clear \
+            --backtitle "Termux Setup Script v$CLEAN_VERSION" \
+            --title "Main Menu" \
+            --menu "Choose an option:" 20 60 12 \
+            0 "Themes" \
+            1 "Blutter Suite" \
+            2 "Radare2 Suite" \
+            3 "Python Packages + Plugins" \
+            4 "Backup Termux Environment" \
+            5 "Restore Termux Environment" \
+            6 "Wipe All Packages (Caution!)" \
+            7 "Update Script Now" \
+            8 "MOTD Settings" \
+            9 "Exit Script" 3>&1 1>&2 2>&3)
 
         clear
         case "$main_choice" in
@@ -99,7 +112,7 @@ main_menu() {
                 fi
                 ;;
             7)
-                self_update
+                update_script
                 ;;
             8) motd_prompt ;;
             9)
@@ -114,10 +127,10 @@ main_menu() {
 # ===================== STARTUP =====================
 # Background version check
 {
-    current=$SCRIPT_VERSION
-    latest=$(get_latest_version)
+    current=$CLEAN_VERSION
+    latest=$(get_clean_version)
     
-    if [[ "$current" != "$latest" && "$latest" != "DEVELOPMENT" ]]; then
+    if [[ "$current" != "$latest" ]]; then
         echo -e "\n\033[1;33m[!] New version v$latest available (Option 7 to update)\033[0m"
         sleep 3
     fi
