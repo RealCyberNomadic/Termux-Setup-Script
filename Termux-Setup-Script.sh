@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="2.1.0"  # This will be automatically updated
+SCRIPT_VERSION="0.5.0"  # This will be automatically updated
 
 # Function to compare version numbers
 version_compare() {
@@ -158,239 +158,213 @@ check_termux_storage() {
 
 # =========[ Tool Suites ]=========
 radare2_suite() {
-  # Define color codes
-  RED='\033[1;31m'
-  GREEN='\033[1;32m'
-  YELLOW='\033[1;33m'
-  ORANGE='\033[38;5;208m'
-  RESET='\033[0m'
-  
-  # Build menu options dynamically
-  local menu_options=()
-  local option_counter=1
+  while true; do
+    # Define color codes
+    RED='\033[1;31m'
+    GREEN='\033[1;32m'
+    YELLOW='\033[1;33m'
+    ORANGE='\033[38;5;208m'
+    BLUE='\033[1;34m'
+    RESET='\033[0m'
+    
+    # Build menu options dynamically
+    local menu_options=()
+    local option_counter=1
 
-  # Radare2 options
-  if [ -d "$HOME/radare2" ]; then
-    menu_options+=("$option_counter" "Update & Clean Reinstall Radare2")
-    radare_update_option=$option_counter
+    # Radare2 options
+    if [ -d "$HOME/radare2" ]; then
+      menu_options+=("$option_counter" "Update Radare2")
+      radare_update_option=$option_counter
+      ((option_counter++))
+    else
+      menu_options+=("$option_counter" "Install Radare2")
+      radare_install_option=$option_counter
+      ((option_counter++))
+    fi
+
+    # KeySigner options
+    if [ -d "$HOME/keysigner" ]; then
+      menu_options+=("$option_counter" "Update KeySigner")
+      keysigner_update_option=$option_counter
+      ((option_counter++))
+    else
+      menu_options+=("$option_counter" "Install KeySigner")
+      keysigner_install_option=$option_counter
+      ((option_counter++))
+    fi
+
+    # SigTool options
+    if [ -d "$HOME/sigtool" ]; then
+      menu_options+=("$option_counter" "Update SigTool")
+      sigtool_update_option=$option_counter
+      ((option_counter++))
+    else
+      menu_options+=("$option_counter" "Install SigTool")
+      sigtool_install_option=$option_counter
+      ((option_counter++))
+    fi
+
+    # Always show Hbctool and Return options
+    menu_options+=("$option_counter" "Install Hbctool")
+    hbctool_option=$option_counter
     ((option_counter++))
-  else
-    menu_options+=("$option_counter" "Install Radare2")
-    radare_install_option=$option_counter
-    ((option_counter++))
-  fi
+    
+    menu_options+=("$option_counter" "Return to Main Menu")
+    return_option=$option_counter
 
-  # KeySigner options
-  if [ -d "$HOME/keysigner" ]; then
-    menu_options+=("$option_counter" "Update & Clean Reinstall KeySigner")
-    keysigner_update_option=$option_counter
-    ((option_counter++))
-  else
-    menu_options+=("$option_counter" "Install KeySigner")
-    keysigner_install_option=$option_counter
-    ((option_counter++))
-  fi
-
-  # SigTool options
-  if [ -d "$HOME/sigtool" ]; then
-    menu_options+=("$option_counter" "Update & Clean Reinstall SigTool")
-    sigtool_update_option=$option_counter
-    ((option_counter++))
-  else
-    menu_options+=("$option_counter" "Install SigTool")
-    sigtool_install_option=$option_counter
-    ((option_counter++))
-  fi
-
-  # Always show Hbctool and Return options
-  menu_options+=("$option_counter" "Install/Update Hbctool")
-  hbctool_option=$option_counter
-  ((option_counter++))
-  
-  menu_options+=("$option_counter" "Return to Main Menu")
-  return_option=$option_counter
-
-  # Display menu
-  choice=$(dialog --title "Radare2 Suite" \
-    --menu "Choose an option:" 20 60 10 \
-    "${menu_options[@]}" 3>&1 1>&2 2>&3)
-  
-  clear
-  case "$choice" in
-    $radare_install_option)
-      echo "[+] Installing Radare2..."
-      pkg install -y build-essential binutils git
-      git clone https://github.com/radareorg/radare2 "$HOME/radare2"
-      cd "$HOME/radare2" && sh sys/install.sh
-      r2pm update && r2pm -ci r2ghidra
-      pip install r2pipe
-      echo -e "${GREEN}[✔] Radare2 installed successfully!${RESET}"
-      ;;
-
-    $radare_update_option)
-      echo -e "${RED}Checking for Updates...${RESET}"
-      cd "$HOME/radare2"
-      git remote update
-      LOCAL_COMMIT=$(git rev-parse --short HEAD)
-      REMOTE_COMMIT=$(git rev-parse --short @{u})
-
-      if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
-        echo -e "${GREEN}[✔] No need to update - same version ($LOCAL_COMMIT)${RESET}"
-        sleep 5
-      else
-        echo -e "Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT"
-        echo -e "${ORANGE}Installing Updates...${RESET}"
-        
-        find "$HOME/radare2" -type f -print0 | xargs -0 touch
-        git reset --hard origin/master
-        git clean -fdx
-        git pull
-        sh sys/install.sh
+    # Display menu
+    choice=$(dialog --title "Radare2 Suite" \
+      --menu "Choose an option:" 20 60 10 \
+      "${menu_options[@]}" 3>&1 1>&2 2>&3)
+    
+    clear
+    case "$choice" in
+      $radare_install_option)
+        echo -e "${BLUE}[+] Installing Radare2...${RESET}"
+        pkg install -y build-essential binutils git
+        git clone https://github.com/radareorg/radare2 "$HOME/radare2"
+        cd "$HOME/radare2" && sh sys/install.sh
         r2pm update && r2pm -ci r2ghidra
-        find "$HOME/radare2" -type f -print0 | xargs -0 touch
-        
-        echo -e "${GREEN}[✔] Updated to Version $REMOTE_COMMIT${RESET}"
+        pip install r2pipe
+        echo -e "${GREEN}[✔] Radare2 installed successfully!${RESET}"
         sleep 5
-      fi
-      ;;
+        ;;
 
-    $keysigner_install_option)
-      echo "[+] Installing KeySigner..."
-      pkg install -y python openjdk-17 apksigner openssl-tool
-      git clone https://github.com/muhammadrizwan87/keysigner.git "$HOME/keysigner"
-      cd "$HOME/keysigner" && pip install build && python -m build
-      pip install --force-reinstall dist/*.whl
-      echo -e "${GREEN}[✔] KeySigner installed successfully!${RESET}"
-      ;;
+      $radare_update_option)
+        echo -e "${BLUE}[+] Checking for Radare2 Updates...${RESET}"
+        cd "$HOME/radare2"
+        git remote update
+        LOCAL_COMMIT=$(git rev-parse --short HEAD)
+        REMOTE_COMMIT=$(git rev-parse --short @{u})
 
-    $keysigner_update_option)
-      echo -e "${RED}Checking for Updates...${RESET}"
-      cd "$HOME/keysigner"
-      git remote update
-      LOCAL_COMMIT=$(git rev-parse --short HEAD)
-      REMOTE_COMMIT=$(git rev-parse --short @{u})
-
-      if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
-        echo -e "${GREEN}[✔] No need to update - same version ($LOCAL_COMMIT)${RESET}"
-        sleep 5
-      else
-        echo -e "Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT"
-        echo -e "${ORANGE}Installing Updates...${RESET}"
-        
-        find "$HOME/keysigner" -type f -print0 | xargs -0 touch
-        git reset --hard origin/master
-        git clean -fdx
-        git pull
-        pip install build && python -m build
-        pip install --force-reinstall dist/*.whl
-        find "$HOME/keysigner" -type f -print0 | xargs -0 touch
-        
-        echo -e "${GREEN}[✔] Updated to Version $REMOTE_COMMIT${RESET}"
-        sleep 5
-      fi
-      ;;
-
-    $sigtool_install_option)
-      echo "[+] Installing SigTool..."
-      pkg install -y python openjdk-17 aapt openssl-tool
-      git clone https://github.com/muhammadrizwan87/sigtool.git "$HOME/sigtool"
-      cd "$HOME/sigtool" && pip install build && python -m build
-      pip install --force-reinstall dist/*.whl
-      echo -e "${GREEN}[✔] SigTool installed successfully!${RESET}"
-      ;;
-
-    $sigtool_update_option)
-      echo -e "${RED}Checking for Updates...${RESET}"
-      cd "$HOME/sigtool"
-      git remote update
-      LOCAL_COMMIT=$(git rev-parse --short HEAD)
-      REMOTE_COMMIT=$(git rev-parse --short @{u})
-
-      if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
-        echo -e "${GREEN}[✔] No need to update - same version ($LOCAL_COMMIT)${RESET}"
-        sleep 5
-      else
-        echo -e "Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT"
-        echo -e "${ORANGE}Installing Updates...${RESET}"
-        
-        find "$HOME/sigtool" -type f -print0 | xargs -0 touch
-        git reset --hard origin/master
-        git clean -fdx
-        git pull
-        pip install build && python -m build
-        pip install --force-reinstall dist/*.whl
-        find "$HOME/sigtool" -type f -print0 | xargs -0 touch
-        
-        echo -e "${GREEN}[✔] Updated to Version $REMOTE_COMMIT${RESET}"
-        sleep 5
-      fi
-      ;;
-
-    $hbctool_option)
-      echo -e "${RED}Checking Hbctool Status...${RESET}"
-      
-      # Create temporary file for version comparison
-      TEMP_WHL=$(mktemp)
-      
-      # Download Hbctool wheel
-      if wget -q -O "$TEMP_WHL" https://github.com/Kirlif/HBC-Tool/releases/download/96/hbctool-0.1.5-96-py3-none-any.whl; then
-        # Compare with existing file if it exists
-        if [ -f "$HOME/hbctool-0.1.5-96-py3-none-any.whl" ]; then
-          if cmp -s "$HOME/hbctool-0.1.5-96-py3-none-any.whl" "$TEMP_WHL"; then
-            echo -e "${GREEN}[✔] Hbctool is up to date${RESET}"
-            rm "$TEMP_WHL"
-            INSTALLED_WHL=0
-          else
-            echo -e "${ORANGE}[!] New Hbctool version available${RESET}"
-            mv "$TEMP_WHL" "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
-            INSTALLED_WHL=1
-          fi
+        if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
+          echo -e "${GREEN}[✔] Radare2 is up to date (Version: $LOCAL_COMMIT)${RESET}"
         else
-          echo -e "${GREEN}[+] Installing Hbctool...${RESET}"
-          mv "$TEMP_WHL" "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
-          INSTALLED_WHL=1
+          echo -e "${RED}[!] Update available! Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT${RESET}"
+          echo -e "${ORANGE}[↻] Updating Radare2...${RESET}"
+          
+          find "$HOME/radare2" -type f -print0 | xargs -0 touch
+          git reset --hard origin/master
+          git clean -fdx
+          git pull
+          sh sys/install.sh
+          r2pm update && r2pm -ci r2ghidra
+          find "$HOME/radare2" -type f -print0 | xargs -0 touch
+          
+          echo -e "${YELLOW}[✓] Radare2 updated to Version $REMOTE_COMMIT${RESET}"
         fi
+        sleep 5
+        ;;
+
+      $keysigner_install_option)
+        echo -e "${BLUE}[+] Installing KeySigner...${RESET}"
+        pkg install -y python openjdk-17 apksigner openssl-tool
+        git clone https://github.com/muhammadrizwan87/keysigner.git "$HOME/keysigner"
+        cd "$HOME/keysigner" && pip install build && python -m build
+        pip install --force-reinstall dist/*.whl
+        echo -e "${GREEN}[✔] KeySigner installed successfully!${RESET}"
+        sleep 5
+        ;;
+
+      $keysigner_update_option)
+        echo -e "${BLUE}[+] Checking for KeySigner Updates...${RESET}"
+        cd "$HOME/keysigner"
+        git remote update
+        LOCAL_COMMIT=$(git rev-parse --short HEAD)
+        REMOTE_COMMIT=$(git rev-parse --short @{u})
+
+        if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
+          echo -e "${GREEN}[✔] KeySigner is up to date (Version: $LOCAL_COMMIT)${RESET}"
+        else
+          echo -e "${RED}[!] Update available! Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT${RESET}"
+          echo -e "${ORANGE}[↻] Updating KeySigner...${RESET}"
+          
+          find "$HOME/keysigner" -type f -print0 | xargs -0 touch
+          git reset --hard origin/master
+          git clean -fdx
+          git pull
+          pip install build && python -m build
+          pip install --force-reinstall dist/*.whl
+          find "$HOME/keysigner" -type f -print0 | xargs -0 touch
+          
+          echo -e "${YELLOW}[✓] KeySigner updated to Version $REMOTE_COMMIT${RESET}"
+        fi
+        sleep 5
+        ;;
+
+      $sigtool_install_option)
+        echo -e "${BLUE}[+] Installing SigTool...${RESET}"
+        pkg install -y python openjdk-17 aapt openssl-tool
+        git clone https://github.com/muhammadrizwan87/sigtool.git "$HOME/sigtool"
+        cd "$HOME/sigtool" && pip install build && python -m build
+        pip install --force-reinstall dist/*.whl
+        echo -e "${GREEN}[✔] SigTool installed successfully!${RESET}"
+        sleep 5
+        ;;
+
+      $sigtool_update_option)
+        echo -e "${BLUE}[+] Checking for SigTool Updates...${RESET}"
+        cd "$HOME/sigtool"
+        git remote update
+        LOCAL_COMMIT=$(git rev-parse --short HEAD)
+        REMOTE_COMMIT=$(git rev-parse --short @{u})
+
+        if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
+          echo -e "${GREEN}[✔] SigTool is up to date (Version: $LOCAL_COMMIT)${RESET}"
+        else
+          echo -e "${RED}[!] Update available! Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT${RESET}"
+          echo -e "${ORANGE}[↻] Updating SigTool...${RESET}"
+          
+          find "$HOME/sigtool" -type f -print0 | xargs -0 touch
+          git reset --hard origin/master
+          git clean -fdx
+          git pull
+          pip install build && python -m build
+          pip install --force-reinstall dist/*.whl
+          find "$HOME/sigtool" -type f -print0 | xargs -0 touch
+          
+          echo -e "${YELLOW}[✓] SigTool updated to Version $REMOTE_COMMIT${RESET}"
+        fi
+        sleep 5
+        ;;
+
+      $hbctool_option)
+        echo -e "${BLUE}[+] Installing Hbctool...${RESET}"
         
-        # Install if new version or first installation
-        if [ "$INSTALLED_WHL" -eq 1 ]; then
+        # First check if wget is installed
+        if ! command -v wget &> /dev/null; then
+          echo -e "${ORANGE}[↻] Installing wget...${RESET}"
+          pkg install -y wget
+        fi
+
+        # Install Hbctool wheel
+        if wget -q -O "$HOME/hbctool-0.1.5-96-py3-none-any.whl" https://github.com/Kirlif/HBC-Tool/releases/download/96/hbctool-0.1.5-96-py3-none-any.whl; then
           pip install --force-reinstall "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
           touch "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
-        fi
-      else
-        echo -e "${RED}[-] Failed to download Hbctool${RESET}"
-        rm -f "$TEMP_WHL"
-      fi
-      
-      # Download hbclabel.py
-      TEMP_LABEL=$(mktemp)
-      if wget -q -O "$TEMP_LABEL" https://raw.githubusercontent.com/Kirlif/Python-Stuff/main/hbclabel.py; then
-        # Compare with existing file if it exists
-        if [ -f "$HOME/hbclabel.py" ]; then
-          if cmp -s "$HOME/hbclabel.py" "$TEMP_LABEL"; then
-            echo -e "${GREEN}[✔] hbclabel.py is up to date${RESET}"
-            rm "$TEMP_LABEL"
-          else
-            echo -e "${ORANGE}[!] Updating hbclabel.py...${RESET}"
-            mv "$TEMP_LABEL" "$HOME/hbclabel.py"
-            chmod +x "$HOME/hbclabel.py"
-            touch "$HOME/hbclabel.py"
-          fi
+          echo -e "${GREEN}[✔] Hbctool installed successfully!${RESET}"
         else
-          echo -e "${GREEN}[+] Installing hbclabel.py...${RESET}"
-          mv "$TEMP_LABEL" "$HOME/hbclabel.py"
+          echo -e "${RED}[-] Failed to download Hbctool${RESET}"
+          rm -f "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+        fi
+        
+        # Install hbclabel.py
+        if wget -q -O "$HOME/hbclabel.py" https://raw.githubusercontent.com/Kirlif/Python-Stuff/main/hbclabel.py; then
           chmod +x "$HOME/hbclabel.py"
           touch "$HOME/hbclabel.py"
+          echo -e "${GREEN}[✔] hbclabel.py installed successfully!${RESET}"
+        else
+          echo -e "${RED}[-] Failed to download hbclabel.py${RESET}"
+          rm -f "$HOME/hbclabel.py"
         fi
-      else
-        echo -e "${RED}[-] Failed to download hbclabel.py${RESET}"
-        rm -f "$TEMP_LABEL"
-      fi
-      
-      sleep 5
-      ;;
+        
+        sleep 5
+        ;;
 
-    $return_option) return ;;
-  esac
+      $return_option)
+        return
+        ;;
+    esac
+  done
 }
 
 blutter_suite() {
