@@ -1,59 +1,44 @@
 #!/usr/bin/env bash
+# MUST match GitHub version exactly
+SCRIPT_VERSION="0.8.0"
 
-# ===================== AUTO-SYNC VERSION SYSTEM =====================
-fetch_github_version() {
-    # Get raw version from GitHub (e.g. "0.8.0")
-    local version=$(curl -s --max-time 5 \
-        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
-        | grep -m1 '^SCRIPT_VERSION=' | cut -d'"' -f2)
-    echo "${version:-1.0.0}"  # Fallback if offline
-}
-
-# Initialize with GitHub's version
-LIVE_VERSION=$(fetch_github_version)
-
-# ===================== INTELLIGENT SELF-UPDATER =====================
+# ===================== TERMUX-SAFE UPDATER =====================
 update_script() {
-    echo -e "\033[1;36m[+] Syncing with GitHub...\033[0m"
+    echo -e "\033[1;36m[+] Updating script from GitHub...\033[0m"
     
-    # Secure temporary file
-    tmp_script=$(mktemp 2>/dev/null || echo "${0}.tmp")
+    # Download to a temporary location in Termux home
+    tmp_script="$HOME/termux_script_update.tmp"
     
-    # Download latest with progress
-    if ! curl -L --progress-bar --max-time 10 --fail \
+    if curl -L --max-time 10 --fail \
         "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
         -o "$tmp_script"; then
-        echo -e "\033[1;31m[!] Download failed (check internet)\033[0m"
-        rm -f "$tmp_script"
-        return 1
-    fi
-
-    # Validate script integrity
-    if ! [[ -s "$tmp_script" ]] || ! grep -q '^#!/' "$tmp_script"; then
-        echo -e "\033[1;31m[!] Invalid script downloaded\033[0m"
-        rm -f "$tmp_script"
-        return 1
-    fi
-
-    # Get the actual new version
-    new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_script" | cut -d'"' -f2)
-
-    # Atomic replacement
-    if chmod +x "$tmp_script" && mv "$tmp_script" "$0"; then
-        echo -e "\033[1;32m[✓] Updated to v$new_version\033[0m"
-        echo -e "\033[1;33m[*] Please restart your terminal to apply changes\033[0m"
-        sleep 3
-        exit 0  # Exit to force restart
+        
+        # Verify we downloaded a valid script
+        if ! grep -q '^#!/' "$tmp_script" || ! grep -q 'SCRIPT_VERSION=' "$tmp_script"; then
+            echo -e "\033[1;31m[!] Invalid script downloaded - update failed\033[0m"
+            rm -f "$tmp_script"
+            return 1
+        fi
+        
+        # Get the new version
+        new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_script" | cut -d'"' -f2)
+        
+        # Replace current script
+        if mv "$tmp_script" "$0"; then
+            chmod +x "$0"
+            echo -e "\033[1;32m[✓] Successfully updated to v$new_version\033[0m"
+            echo -e "\033[1;33m[*] Restarting script to apply changes...\033[0m"
+            sleep 3
+            exec bash "$0" "$@"
+        else
+            echo -e "\033[1;31m[!] Failed to replace script\033[0m"
+            echo -e "\033[1;33m[*] Try moving it manually: mv '$tmp_script' '$0'\033[0m"
+            return 1
+        fi
     else
-        echo -e "\033[1;31m[!] Update failed (try: sudo $0)\033[0m"
+        echo -e "\033[1;31m[!] Download failed - check internet connection\033[0m"
         return 1
     fi
-}
-
-# ===================== DYNAMIC VERSION DISPLAY =====================
-show_version() {
-    # Always show live GitHub version at top
-    echo -e "\n\033[1;35mTermux Setup Script v$LIVE_VERSION\033[0m"
 }
 
 # ===================== STORAGE CHECK =====================
@@ -67,11 +52,9 @@ check_termux_storage() {
 
 # ===================== MAIN MENU =====================
 main_menu() {
-    show_version  # Display current version header
-    
     while true; do
         main_choice=$(dialog --clear \
-            --backtitle "Termux Setup Script v$LIVE_VERSION" \
+            --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
             --title "Main Menu" \
             --menu "Choose an option:" 20 60 12 \
             0 "Themes" \
@@ -92,8 +75,8 @@ main_menu() {
             2) radare2_suite ;;
             3)
                 echo -e "\033[1;33m[+] Installing packages...\033[0m"
-                yes | pkg update -y && yes | pkg upgrade -y
-                yes | pkg install -y git curl wget nano vim ruby php nodejs golang clang \
+                pkg update -y && pkg upgrade -y
+                pkg install -y git curl wget nano vim ruby php nodejs golang clang \
                   zip unzip tar proot neofetch htop openssh nmap net-tools termux-api \
                   termux-tools ffmpeg openjdk-17 tur-repo build-essential binutils
                 pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
@@ -133,17 +116,6 @@ main_menu() {
 }
 
 # ===================== STARTUP =====================
-{
-    # Background version check
-    current=$LIVE_VERSION
-    latest=$(fetch_github_version)
-    
-    if [[ "$current" != "$latest" ]]; then
-        echo -e "\033[1;33m[!] New version v$latest available (Option 7 to update)\033[0m"
-        sleep 2
-    fi
-} &
-
 check_termux_storage
 main_menu
 
