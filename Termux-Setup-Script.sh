@@ -7,7 +7,7 @@ get_clean_version() {
         "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" |
         grep -m1 '^SCRIPT_VERSION=' |
         grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
-    echo "${version:-0.0.0}"  # Fallback if offline
+    echo "${version:-0.8.0}"  # Fallback if offline
 }
 
 CLEAN_VERSION=$(get_clean_version)
