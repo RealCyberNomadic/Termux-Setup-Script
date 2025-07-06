@@ -392,12 +392,29 @@ blutter_suite() {
               local apk_dir="/storage/emulated/0/MT2/apks"
               mkdir -p "$apk_dir"
               
+              # Show directory contents to user
+              echo "[*] Checking for APK/APKS/XAPK files in: $apk_dir"
+              echo "[*] Current directory contents:"
+              ls -lh "$apk_dir" || {
+                echo "[!] Could not list directory contents"
+                read -p "Press [Enter] to continue..."
+                return 1
+              }
+              echo ""
+              
               local apk_file=$(find "$apk_dir" -maxdepth 1 -type f \( -name "*.apk" -o -name "*.apks" -o -name "*.xapk" \) -print -quit)
               
               if [ -z "$apk_file" ]; then
                 echo "[!] No APK/APKS/XAPK files found in $apk_dir"
-                echo "Please place your files in $apk_dir first"
-                read -p "Press [Enter] to continue..."
+                echo ""
+                echo "To use APKEditor, you need to:"
+                echo "1. Place your APK/APKS/XAPK file in this directory:"
+                echo "   $apk_dir"
+                echo "2. Make sure the file has one of these extensions:"
+                echo "   .apk, .apks, or .xapk"
+                echo "3. Then run APKEditor again"
+                echo ""
+                read -p "Press [Enter] to return to menu..."
                 return 1
               fi
               
