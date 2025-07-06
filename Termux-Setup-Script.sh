@@ -1,52 +1,59 @@
 #!/usr/bin/env bash
 
-# ===================== VERSION SYSTEM =====================
-get_clean_version() {
-    # Extract only the version numbers (e.g. "0.8.0") from GitHub
+# ===================== AUTO-SYNC VERSION SYSTEM =====================
+fetch_github_version() {
+    # Get raw version from GitHub (e.g. "0.8.0")
     local version=$(curl -s --max-time 5 \
-        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" |
-        grep -m1 '^SCRIPT_VERSION=' |
-        grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
-    echo "${version:-0.8.0}"  # Fallback if offline
+        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
+        | grep -m1 '^SCRIPT_VERSION=' | cut -d'"' -f2)
+    echo "${version:-0.0.0}"  # Fallback if offline
 }
 
-CLEAN_VERSION=$(get_clean_version)
+# Initialize with GitHub's version
+LIVE_VERSION=$(fetch_github_version)
 
-# ===================== FAILSAFE UPDATE =====================
+# ===================== INTELLIGENT SELF-UPDATER =====================
 update_script() {
-    echo -e "\033[1;36m[+] Downloading latest version...\033[0m"
+    echo -e "\033[1;36m[+] Syncing with GitHub...\033[0m"
     
-    # Create secure temporary file
-    tmp_file=$(mktemp 2>/dev/null || echo "${0}.tmp")
+    # Secure temporary file
+    tmp_script=$(mktemp 2>/dev/null || echo "${0}.tmp")
     
-    # Download with validation
-    if ! curl -L --max-time 10 --fail \
+    # Download latest with progress
+    if ! curl -L --progress-bar --max-time 10 --fail \
         "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
-        -o "$tmp_file"; then
-        echo -e "\033[1;31m[!] Download failed - check internet\033[0m"
-        rm -f "$tmp_file"
+        -o "$tmp_script"; then
+        echo -e "\033[1;31m[!] Download failed (check internet)\033[0m"
+        rm -f "$tmp_script"
         return 1
     fi
 
-    # Verify script structure
-    if ! [[ -s "$tmp_file" ]] || ! grep -q '^#!/' "$tmp_file"; then
+    # Validate script integrity
+    if ! [[ -s "$tmp_script" ]] || ! grep -q '^#!/' "$tmp_script"; then
         echo -e "\033[1;31m[!] Invalid script downloaded\033[0m"
-        rm -f "$tmp_file"
+        rm -f "$tmp_script"
         return 1
     fi
 
     # Get the actual new version
-    new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_file" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
+    new_version=$(grep -m1 '^SCRIPT_VERSION=' "$tmp_script" | cut -d'"' -f2)
 
-    # Replace current script
-    if chmod +x "$tmp_file" && mv "$tmp_file" "$0"; then
-        echo -e "\033[1;32m[✓] Successfully updated to v$new_version\033[0m"
-        sleep 1
-        exec "$0" "$@"
+    # Atomic replacement
+    if chmod +x "$tmp_script" && mv "$tmp_script" "$0"; then
+        echo -e "\033[1;32m[✓] Updated to v$new_version\033[0m"
+        echo -e "\033[1;33m[*] Please restart your terminal to apply changes\033[0m"
+        sleep 3
+        exit 0  # Exit to force restart
     else
-        echo -e "\033[1;31m[!] Install failed (try: sudo $0)\033[0m"
+        echo -e "\033[1;31m[!] Update failed (try: sudo $0)\033[0m"
         return 1
     fi
+}
+
+# ===================== DYNAMIC VERSION DISPLAY =====================
+show_version() {
+    # Always show live GitHub version at top
+    echo -e "\n\033[1;35mTermux Setup Script v$LIVE_VERSION\033[0m"
 }
 
 # ===================== STORAGE CHECK =====================
@@ -60,10 +67,11 @@ check_termux_storage() {
 
 # ===================== MAIN MENU =====================
 main_menu() {
+    show_version  # Display current version header
+    
     while true; do
-        # This now shows ONLY clean version (e.g. "v2.1.1")
         main_choice=$(dialog --clear \
-            --backtitle "Termux Setup Script v$CLEAN_VERSION" \
+            --backtitle "Termux Setup Script v$LIVE_VERSION" \
             --title "Main Menu" \
             --menu "Choose an option:" 20 60 12 \
             0 "Themes" \
@@ -125,14 +133,14 @@ main_menu() {
 }
 
 # ===================== STARTUP =====================
-# Background version check
 {
-    current=$CLEAN_VERSION
-    latest=$(get_clean_version)
+    # Background version check
+    current=$LIVE_VERSION
+    latest=$(fetch_github_version)
     
     if [[ "$current" != "$latest" ]]; then
-        echo -e "\n\033[1;33m[!] New version v$latest available (Option 7 to update)\033[0m"
-        sleep 3
+        echo -e "\033[1;33m[!] New version v$latest available (Option 7 to update)\033[0m"
+        sleep 2
     fi
 } &
 
