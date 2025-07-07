@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="0.9.0"  # This will be automatically updated
+SCRIPT_VERSION="0.0.9"  # This will be automatically updated
 
 # Function to compare version numbers
 version_compare() {
