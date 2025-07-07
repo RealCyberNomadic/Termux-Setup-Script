@@ -1,43 +1,57 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="0.1.0"  # Must match GitHub version
 
-# ===================== FORCED UPDATE SYSTEM =====================
-force_update_script() {
-    echo -e "\033[1;36m[!] FORCED UPDATE: Downloading latest version from GitHub...\033[0m"
+SCRIPT_VERSION="0.1.0"  # MUST MATCH ON GITHUB
+
+update_script() {
+    echo -e "\033[1;36m[+] Checking for updates...\033[0m"
     
-    # Create secure temp file in Termux home
-    tmp_file="$HOME/termux_script_forced_update.tmp"
+    tmp_file=$(mktemp 2>/dev/null || echo "$HOME/termux_update.tmp")
     
-    if curl -L --max-time 10 --fail \
+    if ! curl -L --max-time 10 --fail \
         "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
         -o "$tmp_file"; then
+        echo -e "\033[1;31m[!] Failed to download update\033[0m"
+        rm -f "$tmp_file"
+        return 1
+    fi
+
+    # Validate script integrity
+    if ! grep -q '^SCRIPT_VERSION=' "$tmp_file" || ! grep -q '^#!/' "$tmp_file"; then
+        echo -e "\033[1;31m[!] Corrupted update file\033[0m"
+        rm -f "$tmp_file"
+        return 1
+    fi
+
+    github_version=$(grep -m 1 '^SCRIPT_VERSION=' "$tmp_file" | cut -d '"' -f 2)
+    if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
+        echo -e "\033[1;33m[*] New version: $github_version (You have $SCRIPT_VERSION)\033[0m"
+        read -p $'\033[1;35m[?] Update? [y/N]: \033[0m' -n 1 -r
+        echo
+        [[ ! $REPLY =~ ^[Yy]$ ]] && return 0
         
-        # Basic validation (check it's a script)
-        if ! grep -q '^#!/' "$tmp_file"; then
-            echo -e "\033[1;31m[!] Invalid script downloaded - update failed\033[0m"
-            rm -f "$tmp_file"
-            return 1
-        fi
-        
-        # Replace current script
         if mv "$tmp_file" "$0"; then
             chmod +x "$0"
-            echo -e "\033[1;32m[✓] FORCED UPDATE SUCCESSFUL! Reloading script...\033[0m"
+            echo -e "\033[1;32m[✓] Updated! Reloading...\033[0m"
             sleep 2
             exec bash "$0" "$@"
         else
-            echo -e "\033[1;31m[!] Failed to replace script\033[0m"
-            echo -e "\033[1;33m[*] Try moving manually: mv '$tmp_file' '$0'\033[0m"
+            echo -e "\033[1;31m[!] Update failed (permissions?)\033[0m"
             return 1
         fi
     else
-        echo -e "\033[1;31m[!] Download failed! Check internet connection.\033[0m"
-        return 1
+        echo -e "\033[1;32m[✓] You have the latest version ($SCRIPT_VERSION)\033[0m"
+        rm -f "$tmp_file"
     fi
 }
 
-# Call this function to force update
-force_update_script "$@"
+main() {
+    echo -e "\033[1;32m[+] Running Termux Setup v$SCRIPT_VERSION\033[0m"
+    update_script  # Remove this line if you don't want auto-checks
+    # Your normal script logic here
+}
+
+main "$@"
+
 
 # =========[ motd Functions ]=========
 motd_prompt() {
