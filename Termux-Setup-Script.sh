@@ -1,57 +1,82 @@
 #!/usr/bin/env bash
 
-SCRIPT_VERSION="0.3.0"  # MUST MATCH ON GITHUB
+SCRIPT_VERSION="0.4.0"  # Your custom version (GitHub must match to avoid reverts)
+
+# Set this to 1 to temporarily block updates (debugging)
+NO_UPDATE="${NO_UPDATE:-0}"  # Default: Updates allowed
 
 update_script() {
-    echo -e "\033[1;36m[+] Checking for updates...\033[0m"
+    # Skip if updates are disabled
+    [ "$NO_UPDATE" -eq 1 ] && return 0
+
+    echo -e "\033[1;36m[+] Checking GitHub for updates...\033[0m"
     
-    tmp_file=$(mktemp 2>/dev/null || echo "$HOME/termux_update.tmp")
+    # Secure temp file (avoid conflicts with parallel runs)
+    tmp_file="$(mktemp "$HOME/termux_update_XXXXXX.sh")"
     
+    # Download with strict validation
     if ! curl -L --max-time 10 --fail \
         "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
         -o "$tmp_file"; then
-        echo -e "\033[1;31m[!] Failed to download update\033[0m"
+        echo -e "\033[1;31m[!] Download failed! Check internet.\033[0m"
         rm -f "$tmp_file"
         return 1
     fi
 
-    # Validate script integrity
+    # Critical validation checks
     if ! grep -q '^SCRIPT_VERSION=' "$tmp_file" || ! grep -q '^#!/' "$tmp_file"; then
-        echo -e "\033[1;31m[!] Corrupted update file\033[0m"
+        echo -e "\033[1;31m[!] Invalid script downloaded (missing headers)\033[0m"
         rm -f "$tmp_file"
         return 1
     fi
 
+    # Get GitHub version safely
     github_version=$(grep -m 1 '^SCRIPT_VERSION=' "$tmp_file" | cut -d '"' -f 2)
+    if [[ -z "$github_version" ]]; then
+        echo -e "\033[1;31m[!] GitHub version not detectable\033[0m"
+        rm -f "$tmp_file"
+        return 1
+    fi
+
+    # Version comparison logic
     if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
-        echo -e "\033[1;33m[*] New version: $github_version (You have $SCRIPT_VERSION)\033[0m"
+        echo -e "\033[1;33m[*] New version $github_version available (Local: $SCRIPT_VERSION)\033[0m"
         read -p $'\033[1;35m[?] Update? [y/N]: \033[0m' -n 1 -r
         echo
         [[ ! $REPLY =~ ^[Yy]$ ]] && return 0
-        
-        if mv "$tmp_file" "$0"; then
-            chmod +x "$0"
-            echo -e "\033[1;32m[✓] Updated! Reloading...\033[0m"
-            sleep 2
-            exec bash "$0" "$@"
-        else
-            echo -e "\033[1;31m[!] Update failed (permissions?)\033[0m"
-            return 1
-        fi
     else
-        echo -e "\033[1;32m[✓] You have the latest version ($SCRIPT_VERSION)\033[0m"
+        echo -e "\033[1;32m[✓] Already up-to-date ($SCRIPT_VERSION)\033[0m"
         rm -f "$tmp_file"
+        return 0
+    fi
+
+    # Replace script with confirmation
+    echo -e "\033[1;36m[+] Applying update...\033[0m"
+    if mv "$tmp_file" "$0"; then
+        chmod +x "$0"
+        echo -e "\033[1;32m[✓] Updated to $github_version! Reloading...\033[0m"
+        sleep 2
+        exec bash "$0" "$@"
+    else
+        echo -e "\033[1;31m[!] Failed to replace script (permissions?)\033[0m"
+        echo -e "\033[1;33m[*] Try: mv '$tmp_file' '$0' && chmod +x '$0'\033[0m"
+        return 1
     fi
 }
 
 main() {
-    echo -e "\033[1;32m[+] Running Termux Setup v$SCRIPT_VERSION\033[0m"
-    update_script  # Remove this line if you don't want auto-checks
+    # First-run warning if updates are disabled
+    [ "$NO_UPDATE" -eq 1 ] && \
+        echo -e "\033[1;33m[!] UPDATE SYSTEM DISABLED (NO_UPDATE=1)\033[0m"
+
     # Your normal script logic here
+    echo -e "\033[1;32m[+] Running Termux Setup v$SCRIPT_VERSION\033[0m"
+    
+    # Example: Call update check (remove if unwanted)
+    update_script "$@"
 }
 
 main "$@"
-
 
 # =========[ motd Functions ]=========
 motd_prompt() {
