@@ -3,7 +3,7 @@
 # At the start of your script, display the current version
 echo -e "\033[1;34m[*] Running script version: $SCRIPT_VERSION\033[0m"
 
-SCRIPT_VERSION="0.9.0"  # This will be automatically updated
+SCRIPT_VERSION="0.0.9"  # This will be automatically updated
 
 # Function to compare version numbers
 version_compare() {
