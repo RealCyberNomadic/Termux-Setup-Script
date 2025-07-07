@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="0.0.9"  # This will be automatically updated
+
+# At the start of your script, display the current version
+echo -e "\033[1;34m[*] Running script version: $SCRIPT_VERSION\033[0m"
+
+SCRIPT_VERSION="0.9.0"  # This will be automatically updated
 
 # Function to compare version numbers
 version_compare() {
@@ -63,6 +67,8 @@ check_updates() {
         if [ "$auto_update" -eq 1 ]; then
             echo -e "\033[1;36m[+] Downloading update...\033[0m"
             if curl -s "$SCRIPT_URL" > "$0.tmp"; then
+                # Update the version in the running script's memory
+                SCRIPT_VERSION="$remote_version"
                 sed -i "s/^SCRIPT_VERSION=.*/SCRIPT_VERSION=\"$remote_version\"/" "$0.tmp"
                 mv "$0.tmp" "$0"
                 chmod +x "$0"
