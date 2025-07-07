@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-SCRIPT_VERSION="0.1.0"  # MUST MATCH ON GITHUB
+SCRIPT_VERSION="0.2.0"  # MUST MATCH ON GITHUB
 
 update_script() {
     echo -e "\033[1;36m[+] Checking for updates...\033[0m"
