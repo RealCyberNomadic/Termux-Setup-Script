@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="0.0.9"  # Must match GitHub version
+SCRIPT_VERSION="2.1.1"  # Must match GitHub version
 
-# ===================== ROBUST UPDATE SYSTEM =====================
-update_script() {
-    echo -e "\033[1;36m[+] Downloading latest version from GitHub...\033[0m"
+# ===================== FORCED UPDATE SYSTEM =====================
+force_update_script() {
+    echo -e "\033[1;36m[!] FORCED UPDATE: Downloading latest version from GitHub...\033[0m"
     
     # Create secure temp file in Termux home
-    tmp_file="$HOME/termux_script_update.tmp"
+    tmp_file="$HOME/termux_script_forced_update.tmp"
     
     if curl -L --max-time 10 --fail \
         "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
         -o "$tmp_file"; then
         
-        # Validate downloaded script
-        if ! grep -q '^SCRIPT_VERSION=' "$tmp_file" || ! grep -q '^#!/' "$tmp_file"; then
+        # Basic validation (check it's a script)
+        if ! grep -q '^#!/' "$tmp_file"; then
             echo -e "\033[1;31m[!] Invalid script downloaded - update failed\033[0m"
             rm -f "$tmp_file"
             return 1
@@ -22,7 +22,7 @@ update_script() {
         # Replace current script
         if mv "$tmp_file" "$0"; then
             chmod +x "$0"
-            echo -e "\033[1;32m[✓] Update successful! Reloading script...\033[0m"
+            echo -e "\033[1;32m[✓] FORCED UPDATE SUCCESSFUL! Reloading script...\033[0m"
             sleep 2
             exec bash "$0" "$@"
         else
@@ -36,25 +36,8 @@ update_script() {
     fi
 }
 
-check_updates() {
-    echo -e "\033[1;35m[*] Checking GitHub for updates...\033[0m"
-    local github_content=$(curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh")
-    local github_version=$(echo "$github_content" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
-
-    if [[ -z "$github_version" ]]; then
-        echo -e "\033[1;31m[!] Couldn't verify version! GitHub may be down.\033[0m"
-        return 1
-    fi
-
-    if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
-        echo -e "\033[1;33m[*] New version available: $github_version (Current: $SCRIPT_VERSION)\033[0m"
-        update_script "$@"
-        return 2
-    else
-        echo -e "\033[1;32m[✓] Script is up-to-date ($SCRIPT_VERSION)\033[0m"
-        return 0
-    fi
-}
+# Call this function to force update
+force_update_script "$@"
 
 # =========[ motd Functions ]=========
 motd_prompt() {
