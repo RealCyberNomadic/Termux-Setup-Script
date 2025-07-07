@@ -1,88 +1,59 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="0.9.0"  # This will be automatically updated
+SCRIPT_VERSION="0.0.9"  # Must match GitHub version
 
-# Function to compare version numbers
-version_compare() {
-    local ver1=$1
-    local ver2=$2
+# ===================== ROBUST UPDATE SYSTEM =====================
+update_script() {
+    echo -e "\033[1;36m[+] Downloading latest version from GitHub...\033[0m"
     
-    if [ "$ver1" == "$ver2" ]; then
-        echo 0
-        return
-    fi
+    # Create secure temp file in Termux home
+    tmp_file="$HOME/termux_script_update.tmp"
     
-    IFS='.' read -ra ver1_arr <<< "$ver1"
-    IFS='.' read -ra ver2_arr <<< "$ver2"
-    
-    for ((i=0; i<${#ver1_arr[@]} || i<${#ver2_arr[@]}; i++)); do
-        local num1=$((i < ${#ver1_arr[@]} ? ver1_arr[i] : 0))
-        local num2=$((i < ${#ver2_arr[@]} ? ver2_arr[i] : 0))
+    if curl -L --max-time 10 --fail \
+        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
+        -o "$tmp_file"; then
         
-        if ((num1 > num2)); then
-            echo 1
-            return
-        elif ((num1 < num2)); then
-            echo -1
-            return
+        # Validate downloaded script
+        if ! grep -q '^SCRIPT_VERSION=' "$tmp_file" || ! grep -q '^#!/' "$tmp_file"; then
+            echo -e "\033[1;31m[!] Invalid script downloaded - update failed\033[0m"
+            rm -f "$tmp_file"
+            return 1
         fi
-    done
-    
-    echo 0
+        
+        # Replace current script
+        if mv "$tmp_file" "$0"; then
+            chmod +x "$0"
+            echo -e "\033[1;32m[✓] Update successful! Reloading script...\033[0m"
+            sleep 2
+            exec bash "$0" "$@"
+        else
+            echo -e "\033[1;31m[!] Failed to replace script\033[0m"
+            echo -e "\033[1;33m[*] Try moving manually: mv '$tmp_file' '$0'\033[0m"
+            return 1
+        fi
+    else
+        echo -e "\033[1;31m[!] Download failed! Check internet connection.\033[0m"
+        return 1
+    fi
 }
 
 check_updates() {
-    local auto_update=${1:-1}  # Default to auto-update (1), set to 0 for check-only
-    SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
+    echo -e "\033[1;35m[*] Checking GitHub for updates...\033[0m"
+    local github_content=$(curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh")
+    local github_version=$(echo "$github_content" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
 
-    if ! command -v curl &> /dev/null; then
-        echo "[!] curl not found. Installing..."
-        pkg install -y curl
-    fi
-
-    echo "[+] Checking for updates..."
-    remote_content=$(curl -s "$SCRIPT_URL" || echo "")
-    
-    if [ -z "$remote_content" ]; then
-        echo "[!] Failed to fetch remote script. Check your internet connection."
+    if [[ -z "$github_version" ]]; then
+        echo -e "\033[1;31m[!] Couldn't verify version! GitHub may be down.\033[0m"
         return 1
     fi
 
-    remote_version=$(echo "$remote_content" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
-    
-    if [ -z "$remote_version" ]; then
-        echo "[!] Could not determine remote version."
-        return 1
-    fi
-
-    comparison=$(version_compare "$remote_version" "$SCRIPT_VERSION")
-    
-    if [ "$comparison" -gt 0 ]; then
-        echo -e "\033[1;32m[✓] New Update Available: $remote_version\033[0m"
-        echo -e "\033[1;33m[*] Current Version: $SCRIPT_VERSION\033[0m"
-        
-        if [ "$auto_update" -eq 1 ]; then
-            echo -e "\033[1;36m[+] Downloading update...\033[0m"
-            if curl -s "$SCRIPT_URL" > "$0.tmp"; then
-                sed -i "s/^SCRIPT_VERSION=.*/SCRIPT_VERSION=\"$remote_version\"/" "$0.tmp"
-                mv "$0.tmp" "$0"
-                chmod +x "$0"
-                echo -e "\033[1;32m[✓] Update successful! Restarting script...\033[0m"
-                sleep 2
-                exec bash "$0" "$@"
-            else
-                echo -e "\033[1;31m[!] Update failed. Continuing with current version.\033[0m"
-                rm -f "$0.tmp"
-                return 1
-            fi
-        else
-            echo -e "\033[1;33m[i] Run the script again to auto-update to version $remote_version\033[0m"
-        fi
-    elif [ "$comparison" -eq 0 ]; then
-        echo -e "\033[1;32m[✓] No Update Available - You have the latest version ($SCRIPT_VERSION)\033[0m"
+    if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
+        echo -e "\033[1;33m[*] New version available: $github_version (Current: $SCRIPT_VERSION)\033[0m"
+        update_script "$@"
+        return 2
     else
-        echo -e "\033[1;33m[i] Local version ($SCRIPT_VERSION) is newer than remote ($remote_version)\033[0m"
+        echo -e "\033[1;32m[✓] Script is up-to-date ($SCRIPT_VERSION)\033[0m"
+        return 0
     fi
-    return 0
 }
 
 # =========[ motd Functions ]=========
