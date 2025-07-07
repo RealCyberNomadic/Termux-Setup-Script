@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-
-# At the start of your script, display the current version
-echo -e "\033[1;34m[*] Running script version: $SCRIPT_VERSION\033[0m"
-
-SCRIPT_VERSION="0.0.9"  # This will be automatically updated
+SCRIPT_VERSION="0.9.0"  # This will be automatically updated
 
 # Function to compare version numbers
 version_compare() {
@@ -69,7 +65,6 @@ check_updates() {
             if curl -s "$SCRIPT_URL" > "$0.tmp"; then
                 # Update the version in the running script's memory
                 SCRIPT_VERSION="$remote_version"
-                sed -i "s/^SCRIPT_VERSION=.*/SCRIPT_VERSION=\"$remote_version\"/" "$0.tmp"
                 mv "$0.tmp" "$0"
                 chmod +x "$0"
                 echo -e "\033[1;32m[✓] Update successful! Restarting script...\033[0m"
@@ -90,6 +85,15 @@ check_updates() {
     fi
     return 0
 }
+
+# ===== MAIN SCRIPT STARTS HERE =====
+
+# Display header with current version
+echo -e "\033[1;34m"
+echo "=========================================="
+echo "  Termux Setup Script v$SCRIPT_VERSION"  # Fixed variable name
+echo "=========================================="
+echo -e "\033[0m"
 
 # =========[ motd Functions ]=========
 motd_prompt() {
