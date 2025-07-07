@@ -1,62 +1,91 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="0.9.0"  # Must match GitHub version
+SCRIPT_VERSION="0.9.0"  # This will be automatically updated
 
-# ===================== ROBUST UPDATE SYSTEM =====================
-update_script() {
-    echo -e "\033[1;36m[+] Downloading latest version from GitHub...\033[0m"
+# Function to compare version numbers
+version_compare() {
+    local ver1=$1
+    local ver2=$2
     
-    # Create secure temp file in Termux home
-    tmp_file="$HOME/termux_script_update.tmp"
-    
-    if curl -L --max-time 10 --fail \
-        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
-        -o "$tmp_file"; then
-        
-        # Validate downloaded script
-        if ! grep -q '^SCRIPT_VERSION=' "$tmp_file" || ! grep -q '^#!/' "$tmp_file"; then
-            echo -e "\033[1;31m[!] Invalid script downloaded - update failed\033[0m"
-            rm -f "$tmp_file"
-            return 1
-        fi
-        
-        # Replace current script
-        if mv "$tmp_file" "$0"; then
-            chmod +x "$0"
-            echo -e "\033[1;32m[✓] Update successful! Reloading script...\033[0m"
-            sleep 2
-            exec bash "$0" "$@"
-        else
-            echo -e "\033[1;31m[!] Failed to replace script\033[0m"
-            echo -e "\033[1;33m[*] Try moving manually: mv '$tmp_file' '$0'\033[0m"
-            return 1
-        fi
-    else
-        echo -e "\033[1;31m[!] Download failed! Check internet connection.\033[0m"
-        return 1
+    if [ "$ver1" == "$ver2" ]; then
+        echo 0
+        return
     fi
+    
+    IFS='.' read -ra ver1_arr <<< "$ver1"
+    IFS='.' read -ra ver2_arr <<< "$ver2"
+    
+    for ((i=0; i<${#ver1_arr[@]} || i<${#ver2_arr[@]}; i++)); do
+        local num1=$((i < ${#ver1_arr[@]} ? ver1_arr[i] : 0))
+        local num2=$((i < ${#ver2_arr[@]} ? ver2_arr[i] : 0))
+        
+        if ((num1 > num2)); then
+            echo 1
+            return
+        elif ((num1 < num2)); then
+            echo -1
+            return
+        fi
+    done
+    
+    echo 0
 }
 
 check_updates() {
-    echo -e "\033[1;35m[*] Checking GitHub for updates...\033[0m"
-    local github_content=$(curl -s -L "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh")
-    local github_version=$(echo "$github_content" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
+    local auto_update=${1:-1}  # Default to auto-update (1), set to 0 for check-only
+    SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
 
-    if [[ -z "$github_version" ]]; then
-        echo -e "\033[1;31m[!] Couldn't verify version! GitHub may be down.\033[0m"
+    if ! command -v curl &> /dev/null; then
+        echo "[!] curl not found. Installing..."
+        pkg install -y curl
+    fi
+
+    echo "[+] Checking for updates..."
+    remote_content=$(curl -s "$SCRIPT_URL" || echo "")
+    
+    if [ -z "$remote_content" ]; then
+        echo "[!] Failed to fetch remote script. Check your internet connection."
         return 1
     fi
 
-    if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
-        echo -e "\033[1;33m[*] New version available: $github_version (Current: $SCRIPT_VERSION)\033[0m"
-        update_script "$@"
-        return 2
-    else
-        echo -e "\033[1;32m[✓] Script is up-to-date ($SCRIPT_VERSION)\033[0m"
-        return 0
+    remote_version=$(echo "$remote_content" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
+    
+    if [ -z "$remote_version" ]; then
+        echo "[!] Could not determine remote version."
+        return 1
     fi
+
+    comparison=$(version_compare "$remote_version" "$SCRIPT_VERSION")
+    
+    if [ "$comparison" -gt 0 ]; then
+        echo -e "\033[1;32m[✓] New Update Available: $remote_version\033[0m"
+        echo -e "\033[1;33m[*] Current Version: $SCRIPT_VERSION\033[0m"
+        
+        if [ "$auto_update" -eq 1 ]; then
+            echo -e "\033[1;36m[+] Downloading update...\033[0m"
+            if curl -s "$SCRIPT_URL" > "$0.tmp"; then
+                sed -i "s/^SCRIPT_VERSION=.*/SCRIPT_VERSION=\"$remote_version\"/" "$0.tmp"
+                mv "$0.tmp" "$0"
+                chmod +x "$0"
+                echo -e "\033[1;32m[✓] Update successful! Restarting script...\033[0m"
+                sleep 2
+                exec bash "$0" "$@"
+            else
+                echo -e "\033[1;31m[!] Update failed. Continuing with current version.\033[0m"
+                rm -f "$0.tmp"
+                return 1
+            fi
+        else
+            echo -e "\033[1;33m[i] Run the script again to auto-update to version $remote_version\033[0m"
+        fi
+    elif [ "$comparison" -eq 0 ]; then
+        echo -e "\033[1;32m[✓] No Update Available - You have the latest version ($SCRIPT_VERSION)\033[0m"
+    else
+        echo -e "\033[1;33m[i] Local version ($SCRIPT_VERSION) is newer than remote ($remote_version)\033[0m"
+    fi
+    return 0
 }
 
-# =========[ Original Functions ]=========
+# =========[ motd Functions ]=========
 motd_prompt() {
   while true; do
     choice=$(dialog --title "MOTD Settings" --menu "Choose an action:" 15 60 3 \
@@ -124,7 +153,7 @@ check_termux_storage() {
   fi
 }
 
-# =========[ Tool Suites ]=========
+# =========[ Radare2 Suite ]=========
 radare2_suite() {
   while true; do
     # Define color codes
@@ -335,7 +364,16 @@ radare2_suite() {
   done
 }
 
+# =========[ Blutter Suite ]=========
 blutter_suite() {
+  # Define color codes
+  RED='\033[1;31m'
+  GREEN='\033[1;32m'
+  YELLOW='\033[1;33m'
+  ORANGE='\033[38;5;208m'
+  BLUE='\033[1;34m'
+  RESET='\033[0m'
+
   while true; do
     local choice
     if [ -d "$HOME/blutter-termux" ]; then
@@ -571,14 +609,24 @@ blutter_suite() {
         apk_editor_loop
         ;;
       2)
-        echo "[*] Installing Blutter..."
-        pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt python ffmpeg
-        pip install requests pyelftools
-        cd $HOME
-        [ -d "$HOME/blutter-termux" ] && rm -rf "$HOME/blutter-termux"
-        git clone https://github.com/dedshit/blutter-termux.git
-        echo "[*] Blutter installed. Run with: cd ~/blutter-termux && ./blutter"
-        read -p "Press [Enter] to continue..."
+        if [ -d "$HOME/blutter-termux" ]; then
+          # Update Blutter with color highlights
+          echo -e "${BLUE}[*] Updating Blutter...${RESET}"
+          cd "$HOME/blutter-termux"
+          git pull && \
+            echo -e "${GREEN}[✔] Blutter updated successfully${RESET}" || \
+            echo -e "${RED}[!] Update failed${RESET}"
+        else
+          # Install Blutter with color highlights
+          echo -e "${BLUE}[*] Installing Blutter...${RESET}"
+          pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt python ffmpeg && \
+            pip install requests pyelftools && \
+            cd $HOME && \
+            git clone https://github.com/dedshit/blutter-termux.git && \
+            echo -e "${GREEN}[✔] Blutter installed successfully${RESET}\nRun with: cd ~/blutter-termux && ./blutter" || \
+            echo -e "${RED}[!] Installation failed${RESET}"
+        fi
+        sleep 3
         ;;
       3)
         if [ -d "$HOME/blutter-termux" ]; then
@@ -599,7 +647,7 @@ blutter_suite() {
   done
 }
 
-# =========[ Theme Submenu ]=========
+# =========[ Theme Function ]=========
 submenu() {
   while true; do
     theme_choice=$(dialog --clear --backtitle "Theme Manager" \
@@ -686,13 +734,13 @@ main_menu() {
       1) blutter_suite ;;
       2) radare2_suite ;;
       3)
-        echo -e "\033[1;33m[+] Installing packages...\033[0m"
+        echo -e "\e[1;33m[+] Installing packages...\e[0m"
         yes | pkg update -y && yes | pkg upgrade -y
         yes | pkg install -y git curl wget nano vim ruby php nodejs golang clang \
           zip unzip tar proot neofetch htop openssh nmap net-tools termux-api \
           termux-tools ffmpeg openjdk-17 tur-repo build-essential binutils
         pip install rich requests spotipy yt_dlp ffmpeg-python mutagen
-        echo -e "\033[1;32m[+] Installation complete!\033[0m"
+        echo -e "\e[1;32m[✓] Installation complete!\e[0m"
         sleep 2
         ;;
       4)
@@ -714,23 +762,18 @@ main_menu() {
           echo "Cancelled."
         fi
         ;;
-      7)
-        echo -e "\033[1;36m[*] Checking for updates...\033[0m"
-        check_updates  # Auto-update if available
-        case $? in
-          0)
-            echo -e "\033[1;32m[+] Script is up-to-date ($SCRIPT_VERSION)\033[0m"
-            sleep 2
-            ;;
-          1)
-            echo -e "\033[1;31m[!] Update check failed. Try again later.\033[0m"
-            sleep 2
-            ;;
-          2)
-            # Script will have already restarted if update succeeded
-            exit 0
-            ;;
-        esac
+      7) 
+        echo "[*] Checking for script updates..."
+        check_updates
+        result=$?
+        if [ "$result" -eq 2 ]; then
+          echo "[*] Restarting script with updated version..."
+          sleep 2
+          exec bash "$0"
+        else
+          echo "[*] No update needed or update failed. Returning to main menu in 3 seconds..."
+          sleep 3
+        fi
         ;;
       8) motd_prompt ;;
       9)
