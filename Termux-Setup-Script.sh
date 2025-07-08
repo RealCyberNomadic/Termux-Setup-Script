@@ -194,9 +194,15 @@ radare2_suite() {
       ((option_counter++))
     fi
 
-    # Always show Hbctool and Return options
-    menu_options+=("$option_counter" "Install Hbctool")
-    hbctool_option=$option_counter
+    # HBCTool option - only show operations if both files exist and pip package is installed
+    if { [ -f "$HOME/hbctool-0.1.5-96-py3-none-any.whl" ] || pip show hbctool &>/dev/null; } && \
+       [ -f "$HOME/hbclabel.py" ]; then
+      menu_options+=("$option_counter" "HBCTool Operations")
+      hbctool_option=$option_counter
+    else
+      menu_options+=("$option_counter" "Install HBCTool")
+      hbctool_option=$option_counter
+    fi
     ((option_counter++))
     
     menu_options+=("$option_counter" "Return to Main Menu")
@@ -319,35 +325,101 @@ radare2_suite() {
         ;;
 
       $hbctool_option)
-        echo -e "${BLUE}[+] Installing Hbctool...${RESET}"
-        
-        # First check if wget is installed
-        if ! command -v wget &> /dev/null; then
-          echo -e "${ORANGE}[↻] Installing wget...${RESET}"
-          pkg install -y wget
-        fi
+        # Check if both HBCTool files exist and pip package is installed
+        if { [ -f "$HOME/hbctool-0.1.5-96-py3-none-any.whl" ] || pip show hbctool &>/dev/null; } && \
+           [ -f "$HOME/hbclabel.py" ]; then
+          while true; do
+            # Show HBCTool operations menu
+            hbctool_choice=$(dialog --title "HBCTool Operations" \
+              --menu "Choose an operation:" 15 50 3 \
+              1 "Disasm (index.android.bundle)" \
+              2 "Asm Disasm (index.android.bundle)" \
+              3 "Return to Previous Menu" 3>&1 1>&2 2>&3)
+            
+            clear
+            case "$hbctool_choice" in
+              1)
+                echo -e "${BLUE}[+] Running HBCTool Disasm...${RESET}"
+                # Clear existing disasm directory silently
+                rm -rf "/storage/emulated/0/MT2/apks/disasm" 2>/dev/null
+                
+                if [ -f "/storage/emulated/0/MT2/apks/index.android.bundle" ]; then
+                  echo -e "${YELLOW}[*] Processing bundle file...${RESET}"
+                  if hbctool disasm "/storage/emulated/0/MT2/apks/index.android.bundle" "/storage/emulated/0/MT2/apks/disasm" >/dev/null 2>&1; then
+                    echo -e "${GREEN}[✔] Operation completed successfully!${RESET}"
+                    echo -e "${BLUE}Output files are ready${RESET}"
+                  else
+                    echo -e "${RED}[!] Operation failed${RESET}"
+                    # Clean up failed disassembly directory if it exists
+                    rm -rf "/storage/emulated/0/MT2/apks/disasm" 2>/dev/null
+                  fi
+                else
+                  echo -e "${RED}[!] Required file not found${RESET}"
+                  echo -e "${YELLOW}Please verify the bundle file exists${RESET}"
+                fi
+                sleep 3
+                ;;
+                
+              2)
+                echo -e "${BLUE}[+] Running HBCTool Asm...${RESET}"
+                if [ -d "/storage/emulated/0/MT2/apks/disasm" ]; then
+                  echo -e "${YELLOW}[*] Processing disasm files...${RESET}"
+                  if hbctool asm "/storage/emulated/0/MT2/apks/disasm" "/storage/emulated/0/MT2/apks/index.android.bundle" >/dev/null 2>&1; then
+                    echo -e "${GREEN}[✔] Operation completed successfully!${RESET}"
+                    echo -e "${BLUE}Output file is ready${RESET}"
+                  else
+                    echo -e "${RED}[!] Operation failed${RESET}"
+                  fi
+                else
+                  echo -e "${RED}[!] Required directory not found${RESET}"
+                  echo -e "${YELLOW}Please complete Disasm operation first${RESET}"
+                fi
+                sleep 3
+                ;;
+                
+              3)
+                break
+                ;;
+            esac
+          done
+        else
+          # HBCTool installation code
+          echo -e "${BLUE}[+] Installing Hbctool...${RESET}"
+          
+          if ! command -v wget &> /dev/null; then
+            echo -e "${ORANGE}[↻] Installing wget...${RESET}"
+            pkg install -y wget
+          fi
 
-        # Install Hbctool wheel
-        if wget -q -O "$HOME/hbctool-0.1.5-96-py3-none-any.whl" https://github.com/Kirlif/HBC-Tool/releases/download/96/hbctool-0.1.5-96-py3-none-any.whl; then
-          pip install --force-reinstall "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
-          touch "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
-          echo -e "${GREEN}[✔] Hbctool installed successfully!${RESET}"
-        else
-          echo -e "${RED}[-] Failed to download Hbctool${RESET}"
-          rm -f "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+          # Download hbctool wheel file
+          echo -e "${YELLOW}[*] Downloading HBCTool package...${RESET}"
+          if wget -q -O "$HOME/hbctool-0.1.5-96-py3-none-any.whl" https://github.com/Kirlif/HBC-Tool/releases/download/96/hbctool-0.1.5-96-py3-none-any.whl; then
+            pip install --force-reinstall "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+            touch "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+            echo -e "${GREEN}[✔] Hbctool package installed!${RESET}"
+          else
+            echo -e "${RED}[-] Failed to download Hbctool${RESET}"
+            rm -f "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+            sleep 3
+            continue
+          fi
+          
+          # Download hbclabel.py
+          echo -e "${YELLOW}[*] Downloading hbclabel.py...${RESET}"
+          if wget -q -O "$HOME/hbclabel.py" https://raw.githubusercontent.com/Kirlif/Python-Stuff/main/hbclabel.py; then
+            chmod +x "$HOME/hbclabel.py"
+            touch "$HOME/hbclabel.py"
+            echo -e "${GREEN}[✔] hbclabel.py installed successfully!${RESET}"
+          else
+            echo -e "${RED}[-] Failed to download hbclabel.py${RESET}"
+            rm -f "$HOME/hbclabel.py"
+            sleep 3
+            continue
+          fi
+          
+          echo -e "${GREEN}[✔] HBCTool installation completed!${RESET}"
+          sleep 5
         fi
-        
-        # Install hbclabel.py
-        if wget -q -O "$HOME/hbclabel.py" https://raw.githubusercontent.com/Kirlif/Python-Stuff/main/hbclabel.py; then
-          chmod +x "$HOME/hbclabel.py"
-          touch "$HOME/hbclabel.py"
-          echo -e "${GREEN}[✔] hbclabel.py installed successfully!${RESET}"
-        else
-          echo -e "${RED}[-] Failed to download hbclabel.py${RESET}"
-          rm -f "$HOME/hbclabel.py"
-        fi
-        
-        sleep 5
         ;;
 
       $return_option)
