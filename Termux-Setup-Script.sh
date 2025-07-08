@@ -157,65 +157,98 @@ radare2_suite() {
     BLUE='\033[1;34m'
     RESET='\033[0m'
     
-    # Build menu options dynamically
-    local menu_options=()
-    local option_counter=1
-
-    # Radare2 options
-    if [ -d "$HOME/radare2" ]; then
-      menu_options+=("$option_counter" "Update Radare2")
-      radare_update_option=$option_counter
-      ((option_counter++))
-    else
-      menu_options+=("$option_counter" "Install Radare2")
-      radare_install_option=$option_counter
-      ((option_counter++))
-    fi
-
-    # KeySigner options
-    if [ -d "$HOME/keysigner" ]; then
-      menu_options+=("$option_counter" "Update KeySigner")
-      keysigner_update_option=$option_counter
-      ((option_counter++))
-    else
-      menu_options+=("$option_counter" "Install KeySigner")
-      keysigner_install_option=$option_counter
-      ((option_counter++))
-    fi
-
-    # SigTool options
-    if [ -d "$HOME/sigtool" ]; then
-      menu_options+=("$option_counter" "Update SigTool")
-      sigtool_update_option=$option_counter
-      ((option_counter++))
-    else
-      menu_options+=("$option_counter" "Install SigTool")
-      sigtool_install_option=$option_counter
-      ((option_counter++))
-    fi
-
-    # HBCTool option - only show operations if both files exist and pip package is installed
-    if { [ -f "$HOME/hbctool-0.1.5-96-py3-none-any.whl" ] || pip show hbctool &>/dev/null; } && \
-       [ -f "$HOME/hbclabel.py" ]; then
-      menu_options+=("$option_counter" "HBCTool Operations")
-      hbctool_option=$option_counter
-    else
-      menu_options+=("$option_counter" "Install HBCTool")
-      hbctool_option=$option_counter
-    fi
-    ((option_counter++))
-    
-    menu_options+=("$option_counter" "Return to Main Menu")
-    return_option=$option_counter
-
-    # Display menu
+    # Display simplified menu
     choice=$(dialog --title "Radare2 Suite" \
       --menu "Choose an option:" 20 60 10 \
-      "${menu_options[@]}" 3>&1 1>&2 2>&3)
+      1 "Install HBCTOOL" \
+      2 "Disasm (index.android.bundle)" \
+      3 "Asm Disasm (index.android.bundle)" \
+      4 "Install Radare2" \
+      5 "Install KeySigner" \
+      6 "Install SigTool" \
+      7 "Return to MainMenu" 3>&1 1>&2 2>&3)
     
     clear
     case "$choice" in
-      $radare_install_option)
+      1)
+        # HBCTool installation code
+        echo -e "${BLUE}[+] Installing Hbctool...${RESET}"
+        
+        if ! command -v wget &> /dev/null; then
+          echo -e "${ORANGE}[↻] Installing wget...${RESET}"
+          pkg install -y wget
+        fi
+
+        # Download hbctool wheel file
+        echo -e "${YELLOW}[*] Downloading HBCTool package...${RESET}"
+        if wget -q -O "$HOME/hbctool-0.1.5-96-py3-none-any.whl" https://github.com/Kirlif/HBC-Tool/releases/download/96/hbctool-0.1.5-96-py3-none-any.whl; then
+          pip install --force-reinstall "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+          touch "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+          echo -e "${GREEN}[✔] Hbctool package installed!${RESET}"
+        else
+          echo -e "${RED}[-] Failed to download Hbctool${RESET}"
+          rm -f "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
+          sleep 3
+          continue
+        fi
+        
+        # Download hbclabel.py
+        echo -e "${YELLOW}[*] Downloading hbclabel.py...${RESET}"
+        if wget -q -O "$HOME/hbclabel.py" https://raw.githubusercontent.com/Kirlif/Python-Stuff/main/hbclabel.py; then
+          chmod +x "$HOME/hbclabel.py"
+          touch "$HOME/hbclabel.py"
+          echo -e "${GREEN}[✔] hbclabel.py installed successfully!${RESET}"
+        else
+          echo -e "${RED}[-] Failed to download hbclabel.py${RESET}"
+          rm -f "$HOME/hbclabel.py"
+          sleep 3
+          continue
+        fi
+        
+        echo -e "${GREEN}[✔] HBCTool installation completed!${RESET}"
+        sleep 5
+        ;;
+
+      2)
+        echo -e "${BLUE}[+] Running HBCTool Disasm...${RESET}"
+        # Clear existing disasm directory silently
+        rm -rf "/storage/emulated/0/MT2/apks/disasm" 2>/dev/null
+        
+        if [ -f "/storage/emulated/0/MT2/apks/index.android.bundle" ]; then
+          echo -e "${YELLOW}[*] Processing bundle file...${RESET}"
+          if hbctool disasm "/storage/emulated/0/MT2/apks/index.android.bundle" "/storage/emulated/0/MT2/apks/disasm" >/dev/null 2>&1; then
+            echo -e "${GREEN}[✔] Operation completed successfully!${RESET}"
+            echo -e "${BLUE}Output files are ready${RESET}"
+          else
+            echo -e "${RED}[!] Operation failed${RESET}"
+            # Clean up failed disassembly directory if it exists
+            rm -rf "/storage/emulated/0/MT2/apks/disasm" 2>/dev/null
+          fi
+        else
+          echo -e "${RED}[!] Required file not found${RESET}"
+          echo -e "${YELLOW}Please verify the bundle file exists${RESET}"
+        fi
+        sleep 3
+        ;;
+        
+      3)
+        echo -e "${BLUE}[+] Running HBCTool Asm...${RESET}"
+        if [ -d "/storage/emulated/0/MT2/apks/disasm" ]; then
+          echo -e "${YELLOW}[*] Processing disasm files...${RESET}"
+          if hbctool asm "/storage/emulated/0/MT2/apks/disasm" "/storage/emulated/0/MT2/apks/index.android.bundle" >/dev/null 2>&1; then
+            echo -e "${GREEN}[✔] Operation completed successfully!${RESET}"
+            echo -e "${BLUE}Output file is ready${RESET}"
+          else
+            echo -e "${RED}[!] Operation failed${RESET}"
+          fi
+        else
+          echo -e "${RED}[!] Required directory not found${RESET}"
+          echo -e "${YELLOW}Please complete Disasm operation first${RESET}"
+        fi
+        sleep 3
+        ;;
+
+      4)
         echo -e "${BLUE}[+] Installing Radare2...${RESET}"
         pkg install -y build-essential binutils git
         git clone https://github.com/radareorg/radare2 "$HOME/radare2"
@@ -226,33 +259,7 @@ radare2_suite() {
         sleep 5
         ;;
 
-      $radare_update_option)
-        echo -e "${BLUE}[+] Checking for Radare2 Updates...${RESET}"
-        cd "$HOME/radare2"
-        git remote update
-        LOCAL_COMMIT=$(git rev-parse --short HEAD)
-        REMOTE_COMMIT=$(git rev-parse --short @{u})
-
-        if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
-          echo -e "${GREEN}[✔] Radare2 is up to date (Version: $LOCAL_COMMIT)${RESET}"
-        else
-          echo -e "${RED}[!] Update available! Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT${RESET}"
-          echo -e "${ORANGE}[↻] Updating Radare2...${RESET}"
-          
-          find "$HOME/radare2" -type f -print0 | xargs -0 touch
-          git reset --hard origin/master
-          git clean -fdx
-          git pull
-          sh sys/install.sh
-          r2pm update && r2pm -ci r2ghidra
-          find "$HOME/radare2" -type f -print0 | xargs -0 touch
-          
-          echo -e "${YELLOW}[✓] Radare2 updated to Version $REMOTE_COMMIT${RESET}"
-        fi
-        sleep 5
-        ;;
-
-      $keysigner_install_option)
+      5)
         echo -e "${BLUE}[+] Installing KeySigner...${RESET}"
         pkg install -y python openjdk-17 apksigner openssl-tool
         git clone https://github.com/muhammadrizwan87/keysigner.git "$HOME/keysigner"
@@ -262,33 +269,7 @@ radare2_suite() {
         sleep 5
         ;;
 
-      $keysigner_update_option)
-        echo -e "${BLUE}[+] Checking for KeySigner Updates...${RESET}"
-        cd "$HOME/keysigner"
-        git remote update
-        LOCAL_COMMIT=$(git rev-parse --short HEAD)
-        REMOTE_COMMIT=$(git rev-parse --short @{u})
-
-        if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
-          echo -e "${GREEN}[✔] KeySigner is up to date (Version: $LOCAL_COMMIT)${RESET}"
-        else
-          echo -e "${RED}[!] Update available! Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT${RESET}"
-          echo -e "${ORANGE}[↻] Updating KeySigner...${RESET}"
-          
-          find "$HOME/keysigner" -type f -print0 | xargs -0 touch
-          git reset --hard origin/master
-          git clean -fdx
-          git pull
-          pip install build && python -m build
-          pip install --force-reinstall dist/*.whl
-          find "$HOME/keysigner" -type f -print0 | xargs -0 touch
-          
-          echo -e "${YELLOW}[✓] KeySigner updated to Version $REMOTE_COMMIT${RESET}"
-        fi
-        sleep 5
-        ;;
-
-      $sigtool_install_option)
+      6)
         echo -e "${BLUE}[+] Installing SigTool...${RESET}"
         pkg install -y python openjdk-17 aapt openssl-tool
         git clone https://github.com/muhammadrizwan87/sigtool.git "$HOME/sigtool"
@@ -298,131 +279,7 @@ radare2_suite() {
         sleep 5
         ;;
 
-      $sigtool_update_option)
-        echo -e "${BLUE}[+] Checking for SigTool Updates...${RESET}"
-        cd "$HOME/sigtool"
-        git remote update
-        LOCAL_COMMIT=$(git rev-parse --short HEAD)
-        REMOTE_COMMIT=$(git rev-parse --short @{u})
-
-        if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
-          echo -e "${GREEN}[✔] SigTool is up to date (Version: $LOCAL_COMMIT)${RESET}"
-        else
-          echo -e "${RED}[!] Update available! Current: $LOCAL_COMMIT → Available: $REMOTE_COMMIT${RESET}"
-          echo -e "${ORANGE}[↻] Updating SigTool...${RESET}"
-          
-          find "$HOME/sigtool" -type f -print0 | xargs -0 touch
-          git reset --hard origin/master
-          git clean -fdx
-          git pull
-          pip install build && python -m build
-          pip install --force-reinstall dist/*.whl
-          find "$HOME/sigtool" -type f -print0 | xargs -0 touch
-          
-          echo -e "${YELLOW}[✓] SigTool updated to Version $REMOTE_COMMIT${RESET}"
-        fi
-        sleep 5
-        ;;
-
-      $hbctool_option)
-        # Check if both HBCTool files exist and pip package is installed
-        if { [ -f "$HOME/hbctool-0.1.5-96-py3-none-any.whl" ] || pip show hbctool &>/dev/null; } && \
-           [ -f "$HOME/hbclabel.py" ]; then
-          while true; do
-            # Show HBCTool operations menu
-            hbctool_choice=$(dialog --title "HBCTool Operations" \
-              --menu "Choose an operation:" 15 50 3 \
-              1 "Disasm (index.android.bundle)" \
-              2 "Asm Disasm (index.android.bundle)" \
-              3 "Return to Previous Menu" 3>&1 1>&2 2>&3)
-            
-            clear
-            case "$hbctool_choice" in
-              1)
-                echo -e "${BLUE}[+] Running HBCTool Disasm...${RESET}"
-                # Clear existing disasm directory silently
-                rm -rf "/storage/emulated/0/MT2/apks/disasm" 2>/dev/null
-                
-                if [ -f "/storage/emulated/0/MT2/apks/index.android.bundle" ]; then
-                  echo -e "${YELLOW}[*] Processing bundle file...${RESET}"
-                  if hbctool disasm "/storage/emulated/0/MT2/apks/index.android.bundle" "/storage/emulated/0/MT2/apks/disasm" >/dev/null 2>&1; then
-                    echo -e "${GREEN}[✔] Operation completed successfully!${RESET}"
-                    echo -e "${BLUE}Output files are ready${RESET}"
-                  else
-                    echo -e "${RED}[!] Operation failed${RESET}"
-                    # Clean up failed disassembly directory if it exists
-                    rm -rf "/storage/emulated/0/MT2/apks/disasm" 2>/dev/null
-                  fi
-                else
-                  echo -e "${RED}[!] Required file not found${RESET}"
-                  echo -e "${YELLOW}Please verify the bundle file exists${RESET}"
-                fi
-                sleep 3
-                ;;
-                
-              2)
-                echo -e "${BLUE}[+] Running HBCTool Asm...${RESET}"
-                if [ -d "/storage/emulated/0/MT2/apks/disasm" ]; then
-                  echo -e "${YELLOW}[*] Processing disasm files...${RESET}"
-                  if hbctool asm "/storage/emulated/0/MT2/apks/disasm" "/storage/emulated/0/MT2/apks/index.android.bundle" >/dev/null 2>&1; then
-                    echo -e "${GREEN}[✔] Operation completed successfully!${RESET}"
-                    echo -e "${BLUE}Output file is ready${RESET}"
-                  else
-                    echo -e "${RED}[!] Operation failed${RESET}"
-                  fi
-                else
-                  echo -e "${RED}[!] Required directory not found${RESET}"
-                  echo -e "${YELLOW}Please complete Disasm operation first${RESET}"
-                fi
-                sleep 3
-                ;;
-                
-              3)
-                break
-                ;;
-            esac
-          done
-        else
-          # HBCTool installation code
-          echo -e "${BLUE}[+] Installing Hbctool...${RESET}"
-          
-          if ! command -v wget &> /dev/null; then
-            echo -e "${ORANGE}[↻] Installing wget...${RESET}"
-            pkg install -y wget
-          fi
-
-          # Download hbctool wheel file
-          echo -e "${YELLOW}[*] Downloading HBCTool package...${RESET}"
-          if wget -q -O "$HOME/hbctool-0.1.5-96-py3-none-any.whl" https://github.com/Kirlif/HBC-Tool/releases/download/96/hbctool-0.1.5-96-py3-none-any.whl; then
-            pip install --force-reinstall "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
-            touch "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
-            echo -e "${GREEN}[✔] Hbctool package installed!${RESET}"
-          else
-            echo -e "${RED}[-] Failed to download Hbctool${RESET}"
-            rm -f "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
-            sleep 3
-            continue
-          fi
-          
-          # Download hbclabel.py
-          echo -e "${YELLOW}[*] Downloading hbclabel.py...${RESET}"
-          if wget -q -O "$HOME/hbclabel.py" https://raw.githubusercontent.com/Kirlif/Python-Stuff/main/hbclabel.py; then
-            chmod +x "$HOME/hbclabel.py"
-            touch "$HOME/hbclabel.py"
-            echo -e "${GREEN}[✔] hbclabel.py installed successfully!${RESET}"
-          else
-            echo -e "${RED}[-] Failed to download hbclabel.py${RESET}"
-            rm -f "$HOME/hbclabel.py"
-            sleep 3
-            continue
-          fi
-          
-          echo -e "${GREEN}[✔] HBCTool installation completed!${RESET}"
-          sleep 5
-        fi
-        ;;
-
-      $return_option)
+      7)
         return
         ;;
     esac
