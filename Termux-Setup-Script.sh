@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="1.0.1"
+SCRIPT_VERSION="1.0.2"
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
 
 # Simple update check
