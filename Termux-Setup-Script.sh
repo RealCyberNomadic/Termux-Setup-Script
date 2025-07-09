@@ -1,18 +1,14 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.0.1"
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
 
-# Check if dialog is installed
-if ! command -v dialog &> /dev/null; then
-    echo "Installing dialog..."
-    pkg install -y dialog || {
-        echo "Failed to install dialog. Falling back to simple menu."
-        exec ./"$(basename "$0")" --simple-menu
-        exit
-    }
-fi
+# Simple colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
 
-# Version comparison
+# Version comparison function
 version_compare() {
     local ver1=$1 ver2=$2
     IFS='.' read -ra v1 <<< "$ver1"
@@ -26,117 +22,84 @@ version_compare() {
 }
 
 force_update() {
-    # Store dialog commands in a temporary file
-    tmpfile=$(mktemp)
+    echo -e "${YELLOW}Checking for updates...${NC}"
     
-    # Run update process in background
-    (
-        echo "0"
-        echo "Checking for updates..."
-        
-        if ! command -v curl &>/dev/null; then
-            echo "10"
-            echo "Installing curl..."
-            pkg install -y curl >/dev/null 2>&1 || {
-                echo "100"
-                echo "Failed to install curl" > "$tmpfile"
-                exit 1
-            }
-        fi
-
-        echo "30"
-        echo "Fetching latest version..."
-        remote_content=$(curl -s "$SCRIPT_URL") || {
-            echo "100"
-            echo "Failed to fetch update" > "$tmpfile"
-            exit 1
+    # Ensure curl is available
+    if ! command -v curl &>/dev/null; then
+        echo -e "${YELLOW}Installing curl...${NC}"
+        pkg install -y curl || {
+            echo -e "${RED}Failed to install curl${NC}"
+            return 1
         }
-
-        remote_version=$(grep -m1 "SCRIPT_VERSION=" <<< "$remote_content" | cut -d'"' -f2)
-        if [ -z "$remote_version" ]; then
-            echo "100"
-            echo "Invalid remote version" > "$tmpfile"
-            exit 1
-        fi
-
-        case $(version_compare "$remote_version" "$SCRIPT_VERSION") in
-            0)  echo "100"
-                echo "Already up to date ($SCRIPT_VERSION)" > "$tmpfile"
-                exit 1
-                ;;
-            -1) echo "100"
-                echo "Local version ($SCRIPT_VERSION) is newer than remote ($remote_version)" > "$tmpfile"
-                exit 1
-                ;;
-        esac
-
-        echo "60"
-        echo "Downloading update..."
-        if curl -s "$SCRIPT_URL" > "$0.tmp"; then
-            chmod +x "$0.tmp"
-            mv "$0.tmp" "$0"
-            echo "100"
-            echo "Updated to $remote_version" > "$tmpfile"
-            exit 0
-        else
-            echo "100"
-            echo "Update failed" > "$tmpfile"
-            rm -f "$0.tmp"
-            exit 1
-        fi
-    ) | dialog --title "Updating" --gauge "Please wait..." 10 60 0
-    
-    # Check result
-    if [ -s "$tmpfile" ]; then
-        result=$(cat "$tmpfile")
-        if [[ "$result" == *"Updated to"* ]]; then
-            dialog --title "Success" --msgbox "$result\nRestarting script..." 8 40
-            exec "$0" "${@}"
-        else
-            dialog --title "Notice" --msgbox "$result" 8 40
-        fi
     fi
-    rm -f "$tmpfile"
+
+    # Fetch remote script
+    remote_content=$(curl -s "$SCRIPT_URL") || {
+        echo -e "${RED}Failed to fetch remote script${NC}"
+        return 1
+    }
+
+    # Extract remote version
+    remote_version=$(grep -m1 "SCRIPT_VERSION=" <<< "$remote_content" | cut -d'"' -f2)
+    [ -z "$remote_version" ] && {
+        echo -e "${RED}Could not determine remote version${NC}"
+        return 1
+    }
+
+    # Compare versions
+    case $(version_compare "$remote_version" "$SCRIPT_VERSION") in
+        1)  echo -e "${GREEN}Update available: $remote_version${NC}"
+            echo "Current version: $SCRIPT_VERSION"
+            ;;
+        0)  echo -e "${GREEN}Already up to date ($SCRIPT_VERSION)${NC}"
+            return 1
+            ;;
+        -1) echo -e "${YELLOW}Local version ($SCRIPT_VERSION) is newer than remote ($remote_version)${NC}"
+            return 1
+            ;;
+    esac
+
+    # Perform update
+    echo -e "${YELLOW}Downloading update...${NC}"
+    if curl -s "$SCRIPT_URL" > "$0.tmp"; then
+        chmod +x "$0.tmp"
+        mv "$0.tmp" "$0"
+        echo -e "${GREEN}Update successful. Restarting script...${NC}"
+        sleep 1
+        exec "$0" "${@}"
+    else
+        echo -e "${RED}Update failed${NC}"
+        rm -f "$0.tmp"
+        return 1
+    fi
 }
 
-# Main dialog menu
+# Simple menu
 show_menu() {
-    while true; do
-        choice=$(dialog --title "Termux Script v$SCRIPT_VERSION" \
-                       --menu "Choose an option:" 12 40 3 \
-                       1 "Force Update" \
-                       2 "Continue to Script" \
-                       3 "Exit" \
-                       2>&1 >/dev/tty)
-        
-        case $choice in
-            1) force_update ;;
-            2) break ;; # Continue to main script
-            3) exit 0 ;;
-            *) exit 1 ;; # Dialog was closed
-        esac
-    done
+    clear
+    echo "Termux Update Script v$SCRIPT_VERSION"
+    echo "-----------------------------------"
+    echo "1. Force Update"
+    echo "0. Exit"
+    echo "-----------------------------------"
+    
+    read -p "Select option: " choice
+    
+    case $choice in
+        1) force_update ;;
+        0) exit 0 ;;
+        *) echo -e "${RED}Invalid option${NC}"; sleep 1 ;;
+    esac
+    
+    show_menu
 }
 
-# Handle command line arguments
+# Main execution
 case $1 in
     "--force-update") force_update ;;
-    "--simple-menu")  # Fallback simple menu
-        echo "1. Force Update"
-        echo "2. Continue to Script"
-        echo "3. Exit"
-        read -p "Choice: " choice
-        case $choice in
-            1) force_update ;;
-            2) : ;;
-            3) exit 0 ;;
-        esac
-        ;;
-    *) show_menu ;;
+    "--menu"|"") show_menu ;;
+    *) echo "Usage: $0 [--force-update|--menu]"; exit 1 ;;
 esac
-
-# Rest of your script continues here after Option 2
-echo "Main script continues..."
 
 # =========[ motd Functions ]=========
 motd_prompt() {
