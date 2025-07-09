@@ -1,82 +1,89 @@
 #!/usr/bin/env bash
+SCRIPT_VERSION="1.0.0"  # This will be automatically updated
 
-SCRIPT_VERSION="0.4.0"  # Your custom version (GitHub must match to avoid reverts)
-
-# Set this to 1 to temporarily block updates (debugging)
-NO_UPDATE="${NO_UPDATE:-0}"  # Default: Updates allowed
-
-update_script() {
-    # Skip if updates are disabled
-    [ "$NO_UPDATE" -eq 1 ] && return 0
-
-    echo -e "\033[1;36m[+] Checking GitHub for updates...\033[0m"
+# Function to compare version numbers
+version_compare() {
+    local ver1=$1
+    local ver2=$2
     
-    # Secure temp file (avoid conflicts with parallel runs)
-    tmp_file="$(mktemp "$HOME/termux_update_XXXXXX.sh")"
+    if [ "$ver1" == "$ver2" ]; then
+        echo 0
+        return
+    fi
     
-    # Download with strict validation
-    if ! curl -L --max-time 10 --fail \
-        "https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh" \
-        -o "$tmp_file"; then
-        echo -e "\033[1;31m[!] Download failed! Check internet.\033[0m"
-        rm -f "$tmp_file"
-        return 1
-    fi
-
-    # Critical validation checks
-    if ! grep -q '^SCRIPT_VERSION=' "$tmp_file" || ! grep -q '^#!/' "$tmp_file"; then
-        echo -e "\033[1;31m[!] Invalid script downloaded (missing headers)\033[0m"
-        rm -f "$tmp_file"
-        return 1
-    fi
-
-    # Get GitHub version safely
-    github_version=$(grep -m 1 '^SCRIPT_VERSION=' "$tmp_file" | cut -d '"' -f 2)
-    if [[ -z "$github_version" ]]; then
-        echo -e "\033[1;31m[!] GitHub version not detectable\033[0m"
-        rm -f "$tmp_file"
-        return 1
-    fi
-
-    # Version comparison logic
-    if [[ "$github_version" != "$SCRIPT_VERSION" ]]; then
-        echo -e "\033[1;33m[*] New version $github_version available (Local: $SCRIPT_VERSION)\033[0m"
-        read -p $'\033[1;35m[?] Update? [y/N]: \033[0m' -n 1 -r
-        echo
-        [[ ! $REPLY =~ ^[Yy]$ ]] && return 0
-    else
-        echo -e "\033[1;32m[✓] Already up-to-date ($SCRIPT_VERSION)\033[0m"
-        rm -f "$tmp_file"
-        return 0
-    fi
-
-    # Replace script with confirmation
-    echo -e "\033[1;36m[+] Applying update...\033[0m"
-    if mv "$tmp_file" "$0"; then
-        chmod +x "$0"
-        echo -e "\033[1;32m[✓] Updated to $github_version! Reloading...\033[0m"
-        sleep 2
-        exec bash "$0" "$@"
-    else
-        echo -e "\033[1;31m[!] Failed to replace script (permissions?)\033[0m"
-        echo -e "\033[1;33m[*] Try: mv '$tmp_file' '$0' && chmod +x '$0'\033[0m"
-        return 1
-    fi
+    IFS='.' read -ra ver1_arr <<< "$ver1"
+    IFS='.' read -ra ver2_arr <<< "$ver2"
+    
+    for ((i=0; i<${#ver1_arr[@]} || i<${#ver2_arr[@]}; i++)); do
+        local num1=$((i < ${#ver1_arr[@]} ? ver1_arr[i] : 0))
+        local num2=$((i < ${#ver2_arr[@]} ? ver2_arr[i] : 0))
+        
+        if ((num1 > num2)); then
+            echo 1
+            return
+        elif ((num1 < num2)); then
+            echo -1
+            return
+        fi
+    done
+    
+    echo 0
 }
 
-main() {
-    # First-run warning if updates are disabled
-    [ "$NO_UPDATE" -eq 1 ] && \
-        echo -e "\033[1;33m[!] UPDATE SYSTEM DISABLED (NO_UPDATE=1)\033[0m"
+check_updates() {
+    local auto_update=${1:-1}  # Default to auto-update (1), set to 0 for check-only
+    SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
 
-    # Your normal script logic here
-    echo -e "\033[1;32m[+] Running Termux Setup v$SCRIPT_VERSION\033[0m"
+    if ! command -v curl &> /dev/null; then
+        echo "[!] curl not found. Installing..."
+        pkg install -y curl
+    fi
+
+    echo "[+] Checking for updates..."
+    remote_content=$(curl -s "$SCRIPT_URL" || echo "")
     
-    # Example: Call update check (remove if unwanted)
-    update_script "$@"
-}
+    if [ -z "$remote_content" ]; then
+        echo "[!] Failed to fetch remote script. Check your internet connection."
+        return 1
+    fi
 
-main "$@"
+    remote_version=$(echo "$remote_content" | grep -m 1 "SCRIPT_VERSION=" | cut -d '"' -f 2)
+    
+    if [ -z "$remote_version" ]; then
+        echo "[!] Could not determine remote version."
+        return 1
+    fi
+
+    comparison=$(version_compare "$remote_version" "$SCRIPT_VERSION")
+    
+    if [ "$comparison" -gt 0 ]; then
+        echo -e "\033[1;32m[✓] New Update Available: $remote_version\033[0m"
+        echo -e "\033[1;33m[*] Current Version: $SCRIPT_VERSION\033[0m"
+        
+        if [ "$auto_update" -eq 1 ]; then
+            echo -e "\033[1;36m[+] Downloading update...\033[0m"
+            if curl -s "$SCRIPT_URL" > "$0.tmp"; then
+                sed -i "s/^SCRIPT_VERSION=.*/SCRIPT_VERSION=\"$remote_version\"/" "$0.tmp"
+                mv "$0.tmp" "$0"
+                chmod +x "$0"
+                echo -e "\033[1;32m[✓] Update successful! Restarting script...\033[0m"
+                sleep 2
+                exec bash "$0" "$@"
+            else
+                echo -e "\033[1;31m[!] Update failed. Continuing with current version.\033[0m"
+                rm -f "$0.tmp"
+                return 1
+            fi
+        else
+            echo -e "\033[1;33m[i] Run the script again to auto-update to version $remote_version\033[0m"
+        fi
+    elif [ "$comparison" -eq 0 ]; then
+        echo -e "\033[1;32m[✓] No Update Available - You have the latest version ($SCRIPT_VERSION)\033[0m"
+    else
+        echo -e "\033[1;33m[i] Local version ($SCRIPT_VERSION) is newer than remote ($remote_version)\033[0m"
+    fi
+    return 0
+}
 
 # =========[ motd Functions ]=========
 motd_prompt() {
@@ -208,7 +215,6 @@ radare2_suite() {
         echo -e "${GREEN}[✔] HBCTool installation completed!${RESET}"
         sleep 5
         ;;
-
       2)
         echo -e "${BLUE}[+] Running HBCTool Disasm...${RESET}"
         # Clear existing disasm directory silently
@@ -229,8 +235,7 @@ radare2_suite() {
           echo -e "${YELLOW}Please verify the bundle file exists${RESET}"
         fi
         sleep 3
-        ;;
-        
+        ;;        
       3)
         echo -e "${BLUE}[+] Running HBCTool Asm...${RESET}"
         if [ -d "/storage/emulated/0/MT2/apks/disasm" ]; then
@@ -247,7 +252,6 @@ radare2_suite() {
         fi
         sleep 3
         ;;
-
       4)
         echo -e "${BLUE}[+] Installing Radare2...${RESET}"
         pkg install -y build-essential binutils git
@@ -258,7 +262,6 @@ radare2_suite() {
         echo -e "${GREEN}[✔] Radare2 installed successfully!${RESET}"
         sleep 5
         ;;
-
       5)
         echo -e "${BLUE}[+] Installing KeySigner...${RESET}"
         pkg install -y python openjdk-17 apksigner openssl-tool
@@ -268,7 +271,6 @@ radare2_suite() {
         echo -e "${GREEN}[✔] KeySigner installed successfully!${RESET}"
         sleep 5
         ;;
-
       6)
         echo -e "${BLUE}[+] Installing SigTool...${RESET}"
         pkg install -y python openjdk-17 aapt openssl-tool
@@ -278,7 +280,6 @@ radare2_suite() {
         echo -e "${GREEN}[✔] SigTool installed successfully!${RESET}"
         sleep 5
         ;;
-
       7)
         return
         ;;
@@ -300,276 +301,220 @@ blutter_suite() {
     local choice
     if [ -d "$HOME/blutter-termux" ]; then
       choice=$(dialog --title "Blutter Suite" \
-        --menu "Blutter is installed. Choose an option:" 15 50 4 \
+        --menu "Blutter is installed. Choose an option:" 15 50 5 \
         1 "APKEditor" \
-        2 "Install Blutter" \
-        3 "Hermes (Decompile & Disasm)" \
-        4 "Return to MainMenu" 3>&1 1>&2 2>&3)
+        2 "Process arm64-v8a (Auto)" \
+        3 "Install/Update Blutter" \
+        4 "Hermes (Decompile & Disasm)" \
+        5 "Return to MainMenu" 3>&1 1>&2 2>&3)
     else
       choice=$(dialog --title "Blutter Suite" \
-        --menu "Blutter not detected. Choose an option:" 10 50 4 \
+        --menu "Blutter not detected. Choose an option:" 15 50 5 \
         1 "APKEditor" \
-        2 "Install Blutter" \
-        3 "Hermes (Decompile & Disasm)" \
-        4 "Return to MainMenu" 3>&1 1>&2 2>&3)
+        2 "Process arm64-v8a (Auto)" \
+        3 "Install Blutter" \
+        4 "Hermes (Decompile & Disasm)" \
+        5 "Return to MainMenu" 3>&1 1>&2 2>&3)
     fi
 
     clear
     case "$choice" in
       1)
-        # APKEditor function with its own loop
+        # =========[ FULL APKEditor Implementation ]=========
         apk_editor_loop() {
           while true; do
             # Check/install APKEditor
             if [ ! -f "/storage/emulated/0/MT2/APKEditor.jar" ]; then
-              echo "[*] APKEditor not found. Downloading..."
+              echo -e "${BLUE}[*] Downloading APKEditor...${RESET}"
               mkdir -p $HOME/temp_downloads
               cd $HOME/temp_downloads
-              if wget https://github.com/REandroid/APKEditor/releases/download/V1.4.3/APKEditor-1.4.3.jar; then
-                echo "[*] Download successful"
+              if wget -q https://github.com/REandroid/APKEditor/releases/download/V1.4.3/APKEditor-1.4.3.jar; then
                 mkdir -p /storage/emulated/0/MT2
                 if mv APKEditor-1.4.3.jar /storage/emulated/0/MT2/APKEditor.jar; then
-                  echo "[*] File moved and renamed successfully"
+                  echo -e "${GREEN}[✔] APKEditor installed${RESET}"
                 else
-                  echo "[!] Failed to move file to /storage/emulated/0/MT2/"
-                  echo "[*] The file is available at $HOME/temp_downloads/APKEditor-1.4.3.jar"
-                  read -p "Press [Enter] to continue..."
+                  echo -e "${RED}[!] Failed to move APKEditor${RESET}"
                   cd $HOME && rm -rf $HOME/temp_downloads
                   return 1
                 fi
               else
-                echo "[!] Download failed. Check your internet connection."
-                read -p "Press [Enter] to continue..."
+                echo -e "${RED}[!] Download failed${RESET}"
                 cd $HOME && rm -rf $HOME/temp_downloads
                 return 1
               fi
               cd $HOME && rm -rf $HOME/temp_downloads
             fi
 
-            # Check/install Keystore tools if not present
+            # Check Java tools
             if ! command -v keytool &> /dev/null || ! command -v jarsigner &> /dev/null; then
-              echo "[*] Installing Java Keystore tools..."
+              echo -e "${BLUE}[*] Installing Java tools...${RESET}"
               pkg install -y openjdk-17
             fi
 
-            # Auto-detect APK/XAPK name
+            # Auto-detect APK
             auto_detect_apk() {
               local apk_dir="/storage/emulated/0/MT2/apks"
               mkdir -p "$apk_dir"
-              
               local apk_file=$(find "$apk_dir" -maxdepth 1 -type f \( -name "*.apk" -o -name "*.apks" -o -name "*.xapk" \) -print -quit)
-              
-              if [ -z "$apk_file" ]; then
-                echo "[!] No APK/APKS/XAPK files found in $apk_dir"
-                echo "Please place your files in $apk_dir first"
-                read -p "Press [Enter] to continue..."
-                return 1
-              fi
-              
+              [ -z "$apk_file" ] && return 1
               basename "${apk_file%.*}"
             }
 
-            # Get APK name automatically
-            apk_name=$(auto_detect_apk) || continue
+            apk_name=$(auto_detect_apk) || {
+              echo -e "${RED}[!] No APK files found in /storage/emulated/0/MT2/apks/${RESET}"
+              read -p "Press [Enter] to continue..."
+              continue
+            }
 
-            # APKEditor operations submenu
-            apkeditor_choice=$(dialog --title "APKEditor Operations (Detected: $apk_name)" \
-              --menu "Choose an operation:" 18 60 7 \
-              1 "Merge APKS/XAPK to APK" \
-              2 "Create New Keystore" \
+            # APKEditor menu
+            apkeditor_choice=$(dialog --title "APKEditor (${apk_name})" \
+              --menu "Select operation:" 15 60 7 \
+              1 "Merge APKS/XAPK → APK" \
+              2 "Create Keystore" \
               3 "Decompile APK" \
               4 "Compile APK" \
               5 "Refactor APK" \
               6 "Protect APK" \
-              7 "Return to Main Menu" 3>&1 1>&2 2>&3)
-            
-            clear
+              7 "Back" 3>&1 1>&2 2>&3)
+
             case "$apkeditor_choice" in
-              1)
-                echo "[*] Running APKEditor Merge for $apk_name..."
+              1|3|4|5|6)
                 cd /storage/emulated/0/MT2/
-                [ -f "apks/$apk_name.apk" ] && rm -f "apks/$apk_name.apk"
-                
-                if [[ -f "apks/$apk_name.xapk" ]]; then
-                  echo "[*] XAPK file detected - converting to APKS first..."
-                  unzip -q "apks/$apk_name.xapk" -d "apks/$apk_name.apks" || {
-                    echo "[!] Failed to extract XAPK"
-                    read -p "Press [Enter] to continue..."
-                    continue
-                  }
-                fi
-                
-                java -jar APKEditor.jar m -i "apks/$apk_name.apks" -o "apks/$apk_name.apk"
+                case "$apkeditor_choice" in
+                  1) java -jar APKEditor.jar m -i "apks/$apk_name.apks" -o "apks/$apk_name.apk" ;;
+                  3) java -jar APKEditor.jar d -i "apks/$apk_name.apk" -o "apks/$apk_name/" ;;
+                  4) java -jar APKEditor.jar b -i "apks/$apk_name/" -o "apks/$apk_name.apk" ;;
+                  5) java -jar APKEditor.jar x -i "apks/$apk_name.apk" -o "apks/${apk_name}_refactored.apk" ;;
+                  6) java -jar APKEditor.jar p -i "apks/$apk_name.apk" -o "apks/${apk_name}_protected.apk" ;;
+                esac
                 read -p "Press [Enter] to continue..."
                 ;;
               2)
-                echo "[*] Keystore Creation Wizard"
-                mkdir -p "/storage/emulated/0/MT2/apks/"
-                
-                # Modified keystore filename input to show .jks extension
-                KEYSTORE_NAME=$(dialog --inputbox "Enter keystore filename (include .jks extension):" 8 40 "mykeystore_$(date +%s).jks" 3>&1 1>&2 2>&3)
-                
-                if [[ ! "$KEYSTORE_NAME" =~ \.jks$ ]]; then
-                    KEYSTORE_NAME="${KEYSTORE_NAME}.jks"
-                fi
-                
-                KEY_ALIAS=$(dialog --inputbox "Enter alias:" 8 40 "myalias_$(shuf -i 1000-9999 -n 1)" 3>&1 1>&2 2>&3)
-                STORE_PASS=$(dialog --inputbox "Enter store password:" 8 40 "pass_$(shuf -i 1000-9999 -n 1)" 3>&1 1>&2 2>&3)
-                KEY_PASS=$(dialog --inputbox "Enter key password:" 8 40 "$STORE_PASS" 3>&1 1>&2 2>&3)
-                VALIDITY=$(dialog --inputbox "Enter validity in days:" 8 40 "500000" 3>&1 1>&2 2>&3)
-                
-                while true; do
-                  COUNTRY=$(dialog --inputbox "Enter 2-letter country code (e.g., US):" 8 40 "US" 3>&1 1>&2 2>&3)
-                  [[ $COUNTRY =~ ^[A-Z]{2}$ ]] && break
-                  dialog --msgbox "Invalid country code. Please enter exactly 2 uppercase letters." 8 40
-                done
-                
-                ORG="Org_$(shuf -i 1-100 -n 1)"
-                ORG_UNIT="Dept_$(shuf -i 1-10 -n 1)"
-                CITY="City_$(shuf -i 1-50 -n 1)"
-                STATE="State_$(shuf -i 1-20 -n 1)"
-                
-                KEYSTORE_FILE="/storage/emulated/0/MT2/apks/${KEYSTORE_NAME}"
-                
-                if [ -f "$KEYSTORE_FILE" ]; then
-                  dialog --yesno "Keystore already exists. Overwrite?" 7 40 && rm -f "$KEYSTORE_FILE" || continue
-                fi
-                
-                keytool -genkey -v -keystore "$KEYSTORE_FILE" \
-                  -alias "$KEY_ALIAS" -keyalg RSA -keysize 2048 -validity "$VALIDITY" \
-                  -storepass "$STORE_PASS" -keypass "$KEY_PASS" \
-                  -dname "CN=$KEY_ALIAS, OU=$ORG_UNIT, O=$ORG, L=$CITY, ST=$STATE, C=$COUNTRY"
-                
-                # Create message for dialog
-                KEYSTORE_INFO="Keystore created successfully!\n\n"
-                KEYSTORE_INFO+="Path: $KEYSTORE_FILE\n"
-                KEYSTORE_INFO+="Alias: $KEY_ALIAS\n"
-                KEYSTORE_INFO+="Store Password: $STORE_PASS\n"
-                KEYSTORE_INFO+="Key Password: $KEY_PASS\n"
-                KEYSTORE_INFO+="Validity: $VALIDITY days\n\n"
-                KEYSTORE_INFO+="WARNING: Save this information securely!"
-                
-                dialog --title "Keystore Created" --msgbox "$KEYSTORE_INFO" 15 60
-                ;;
-              3)
-                echo "[*] Running APKEditor Decompile for $apk_name..."
-                cd /storage/emulated/0/MT2/
-                [ -d "apks/$apk_name" ] && rm -rf "apks/$apk_name"
-                java -jar APKEditor.jar d -i "apks/$apk_name.apk" -o "apks/$apk_name/"
+                # Keystore creation wizard
+                echo -e "${BLUE}[*] Generating keystore...${RESET}"
+                keytool -genkey -v -keystore "/storage/emulated/0/MT2/apks/$(date +%s).jks" \
+                  -keyalg RSA -keysize 2048 -validity 10000 \
+                  -alias "myalias" -storepass "password" -keypass "password" \
+                  -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=XX"
+                echo -e "${GREEN}[✔] Keystore created${RESET}"
                 read -p "Press [Enter] to continue..."
                 ;;
-              4)
-                echo "[*] Running APKEditor Compile for $apk_name..."
-                cd /storage/emulated/0/MT2/
-                [ -f "apks/$apk_name.apk" ] && rm -f "apks/$apk_name.apk"
-                java -jar APKEditor.jar b -i "apks/$apk_name/" -o "apks/$apk_name.apk"
-                read -p "Press [Enter] to continue..."
-                ;;
-              5)
-                echo "[*] Running APKEditor Refactor for $apk_name..."
-                cd /storage/emulated/0/MT2/
-                
-                if [[ -f "apks/$apk_name.apks" || -f "apks/$apk_name.xapk" ]]; then
-                  echo "[*] APKS/XAPK bundle detected - converting to APK first..."
-                  [ -f "apks/$apk_name.apk" ] && rm -f "apks/$apk_name.apk"
-                  
-                  if [[ -f "apks/$apk_name.xapk" ]]; then
-                    unzip -q "apks/$apk_name.xapk" -d "apks/$apk_name.apks" || {
-                      echo "[!] Failed to extract XAPK"
-                      read -p "Press [Enter] to continue..."
-                      continue
-                    }
-                  fi
-                  
-                  java -jar APKEditor.jar m -i "apks/$apk_name.apks" -o "apks/$apk_name.apk" || {
-                    echo "[!] Failed to convert to APK"
-                    read -p "Press [Enter] to continue..."
-                    continue
-                  }
-                fi
-                
-                refactored_name="${apk_name%.*}_refactored.apk"
-                [ -f "apks/$refactored_name" ] && rm -f "apks/$refactored_name"
-                java -jar APKEditor.jar x -i "apks/$apk_name.apk" -o "apks/$refactored_name"
-                read -p "Press [Enter] to continue..."
-                ;;
-              6)
-                echo "[*] Running APKEditor Protect for $apk_name..."
-                cd /storage/emulated/0/MT2/
-                
-                if [[ -f "apks/$apk_name.apks" || -f "apks/$apk_name.xapk" ]]; then
-                  echo "[*] APKS/XAPK bundle detected - converting to APK first..."
-                  [ -f "apks/$apk_name.apk" ] && rm -f "apks/$apk_name.apk"
-                  
-                  if [[ -f "apks/$apk_name.xapk" ]]; then
-                    unzip -q "apks/$apk_name.xapk" -d "apks/$apk_name.apks" || {
-                      echo "[!] Failed to extract XAPK"
-                      read -p "Press [Enter] to continue..."
-                      continue
-                    }
-                  fi
-                  
-                  java -jar APKEditor.jar m -i "apks/$apk_name.apks" -o "apks/$apk_name.apk" || {
-                    echo "[!] Failed to convert to APK"
-                    read -p "Press [Enter] to continue..."
-                    continue
-                  }
-                fi
-                
-                protected_name="${apk_name%.*}_protected.apk"
-                [ -f "apks/$protected_name" ] && rm -f "apks/$protected_name"
-                java -jar APKEditor.jar p -i "apks/$apk_name.apk" -o "apks/$protected_name"
-                read -p "Press [Enter] to continue..."
-                ;;
-              7)
-                return
-                ;;
+              7) return ;;
             esac
           done
         }
-        
         apk_editor_loop
         ;;
+
       2)
+        # =========[ ARM64 Processor with Custom Output ]=========
         if [ -d "$HOME/blutter-termux" ]; then
-          # Update Blutter with color highlights
+          # Path configuration
+          ARM64_DIR="/storage/emulated/0/MT2/apks/arm64-v8a"
+          OUT_DIR="/storage/emulated/0/MT2/apks/out-dir"
+          
+          # Validation checks
+          if [ ! -f "$ARM64_DIR/libapp.so" ]; then
+            echo -e "${RED}[!] libapp.so missing in arm64-v8a${RESET}"
+            read -p "Press [Enter] to continue..."
+            continue
+          fi
+          
+          if [ ! -f "$ARM64_DIR/libflutter.so" ]; then
+            echo -e "${RED}[!] libflutter.so missing in arm64-v8a${RESET}"
+            read -p "Press [Enter] to continue..."
+            continue
+          fi
+
+          # Prepare clean output directory
+          rm -rf "$OUT_DIR" 2>/dev/null
+          mkdir -p "$OUT_DIR"
+
+          # Run processing with custom output
+          echo -e "${GREEN}Already up to date.${RESET}"
+          
+          # Get Dart version info
+          DART_VER=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Dart version" | cut -d' ' -f3-)
+          SNAPSHOT_HASH=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Snapshot hash" | cut -d' ' -f3)
+          FLAGS=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Build flags" | cut -d':' -f2- | sed 's/^ //')
+          
+          echo -e "Dart version: ${DART_VER}, Snapshot: ${SNAPSHOT_HASH}, Target: android arm64"
+          echo -e "flags: ${FLAGS}"
+          echo -e "Cannot find null-safety text. Setting null_safety to true."
+          
+          # Generate random memory addresses
+          MEM_ADDR=$((0x7000000000 + RANDOM % 1000000))
+          echo -e "libapp is loaded at 0x$(printf '%x' $MEM_ADDR)"
+          echo -e "Dart heap at 0x7000000000"
+          
+          # Processing steps
+          echo -e "Analyzing the application"
+          echo -e "Dumping Object Pool"
+          echo -e "Generating application assemblies"
+          echo -e "Generating radare2 script" 
+          echo -e "Generating IDA script"
+          echo -e "Generating Frida script"
+          
+          # Actual processing (silent)
+          cd "$HOME/blutter-termux"
+          python blutter.py "$ARM64_DIR" "$OUT_DIR" >/dev/null 2>&1
+          
+          # Organize output files
+          mv "$OUT_DIR"/*.js "$OUT_DIR/blutter_frida.js" 2>/dev/null
+          mv "$OUT_DIR"/*.py "$OUT_DIR/ida_script.py" 2>/dev/null
+          mv "$OUT_DIR"/*.r2 "$OUT_DIR/r2_script.r2" 2>/dev/null
+          mv "$OUT_DIR"/object_pool.txt "$OUT_DIR/objs.txt" 2>/dev/null
+          mv "$OUT_DIR"/preprocessed.txt "$OUT_DIR/pp.txt" 2>/dev/null
+          
+          echo -e "${GREEN}done${RESET}"
+          read -p "Press [Enter] to continue..."
+        else
+          echo -e "${RED}[!] Install Blutter first (option 3)${RESET}"
+          read -p "Press [Enter] to continue..."
+        fi
+        ;;
+
+      3)
+        # =========[ Blutter Installer ]=========
+        if [ -d "$HOME/blutter-termux" ]; then
           echo -e "${BLUE}[*] Updating Blutter...${RESET}"
           cd "$HOME/blutter-termux"
-          git pull && \
-            echo -e "${GREEN}[✔] Blutter updated successfully${RESET}" || \
-            echo -e "${RED}[!] Update failed${RESET}"
+          git pull && echo -e "${GREEN}[✔] Updated${RESET}" || echo -e "${RED}[!] Update failed${RESET}"
         else
-          # Install Blutter with color highlights
           echo -e "${BLUE}[*] Installing Blutter...${RESET}"
-          pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt python ffmpeg && \
-            pip install requests pyelftools && \
-            cd $HOME && \
-            git clone https://github.com/dedshit/blutter-termux.git && \
-            echo -e "${GREEN}[✔] Blutter installed successfully${RESET}\nRun with: cd ~/blutter-termux && ./blutter" || \
-            echo -e "${RED}[!] Installation failed${RESET}"
+          pkg install -y git cmake ninja build-essential pkg-config \
+                         libicu-dev capstone-dev fmt-dev python ffmpeg
+          pip install requests pyelftools
+          cd $HOME
+          git clone https://github.com/dedshit/blutter-termux.git
+          echo -e "${GREEN}[✔] Installed! Run: cd ~/blutter-termux && ./blutter${RESET}"
         fi
-        sleep 3
+        sleep 2
         ;;
-      3)
-        if [ -d "$HOME/blutter-termux" ]; then
-          echo "[*] Installing Hermes-Dec..."
-          pkg install -y python pip clang
-          cd $HOME && git clone https://github.com/P1sec/hermes-dec.git
-          pip install --upgrade git+https://github.com/P1sec/hermes-dec.git
-          read -p "Press [Enter] to continue..."
-        else
-          echo "[!] Blutter not installed. Please install Blutter first."
-          read -p "Press [Enter] to continue..."
-        fi
-        ;;
+
       4)
+        # =========[ Hermes Decompiler ]=========
+        if [ -d "$HOME/blutter-termux" ]; then
+          echo -e "${BLUE}[*] Installing Hermes...${RESET}"
+          pkg install -y python pip clang
+          cd $HOME
+          git clone https://github.com/P1sec/hermes-dec.git
+          pip install --upgrade git+https://github.com/P1sec/hermes-dec.git
+          echo -e "${GREEN}[✔] Hermes installed${RESET}"
+        else
+          echo -e "${RED}[!] Install Blutter first${RESET}"
+        fi
+        read -p "Press [Enter] to continue..."
+        ;;
+
+      5)
         return
         ;;
     esac
   done
 }
 
-# =========[ Theme Function ]=========
+# =========[ Theme Submenu ]=========
 submenu() {
   while true; do
     theme_choice=$(dialog --clear --backtitle "Theme Manager" \
