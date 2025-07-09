@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="1.0.1"
+SCRIPT_VERSION="1.0.2"
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
 
 # Simple colors
@@ -7,6 +7,17 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
+
+# Check if dialog is installed
+check_dialog() {
+    if ! command -v dialog &>/dev/null; then
+        echo -e "${YELLOW}Installing dialog...${NC}"
+        pkg install -y dialog || {
+            echo -e "${RED}Failed to install dialog${NC}"
+            return 1
+        }
+    fi
+}
 
 # Version comparison function
 version_compare() {
@@ -22,76 +33,121 @@ version_compare() {
 }
 
 force_update() {
-    echo -e "${YELLOW}Checking for updates...${NC}"
+    check_dialog || return 1
+    
+    # Create a temporary file for dialog output
+    local tmpfile=$(mktemp)
+    
+    dialog --title "Update Check" --infobox "Checking for updates..." 5 40
     
     # Ensure curl is available
     if ! command -v curl &>/dev/null; then
-        echo -e "${YELLOW}Installing curl...${NC}"
-        pkg install -y curl || {
-            echo -e "${RED}Failed to install curl${NC}"
+        dialog --title "Dependency Needed" --yesno "Curl is required but not installed. Install it now?" 7 40
+        if [ $? -eq 0 ]; then
+            dialog --title "Installing Curl" --infobox "Installing curl..." 5 40
+            pkg install -y curl > "$tmpfile" 2>&1 || {
+                dialog --title "Error" --msgbox "Failed to install curl" 5 40
+                rm -f "$tmpfile"
+                return 1
+            }
+        else
+            rm -f "$tmpfile"
             return 1
-        }
+        fi
     fi
 
     # Fetch remote script
+    dialog --title "Update Check" --infobox "Fetching remote script..." 5 40
     remote_content=$(curl -s "$SCRIPT_URL") || {
-        echo -e "${RED}Failed to fetch remote script${NC}"
+        dialog --title "Error" --msgbox "Failed to fetch remote script" 5 40
+        rm -f "$tmpfile"
         return 1
     }
 
     # Extract remote version
     remote_version=$(grep -m1 "SCRIPT_VERSION=" <<< "$remote_content" | cut -d'"' -f2)
     [ -z "$remote_version" ] && {
-        echo -e "${RED}Could not determine remote version${NC}"
+        dialog --title "Error" --msgbox "Could not determine remote version" 5 40
+        rm -f "$tmpfile"
         return 1
     }
 
     # Compare versions
     case $(version_compare "$remote_version" "$SCRIPT_VERSION") in
-        1)  echo -e "${GREEN}Update available: $remote_version${NC}"
-            echo "Current version: $SCRIPT_VERSION"
+        1)  dialog --title "Update Available" --yesno "Update available: $remote_version\nCurrent version: $SCRIPT_VERSION\n\nUpdate now?" 10 40
+            if [ $? -ne 0 ]; then
+                rm -f "$tmpfile"
+                return 1
+            fi
             ;;
-        0)  echo -e "${GREEN}Already up to date ($SCRIPT_VERSION)${NC}"
+        0)  dialog --title "Up to Date" --msgbox "Already up to date ($SCRIPT_VERSION)" 5 40
+            rm -f "$tmpfile"
             return 1
             ;;
-        -1) echo -e "${YELLOW}Local version ($SCRIPT_VERSION) is newer than remote ($remote_version)${NC}"
+        -1) dialog --title "Version Warning" --msgbox "Local version ($SCRIPT_VERSION) is newer than remote ($remote_version)" 7 40
+            rm -f "$tmpfile"
             return 1
             ;;
     esac
 
     # Perform update
-    echo -e "${YELLOW}Downloading update...${NC}"
+    dialog --title "Updating" --infobox "Downloading update..." 5 40
     if curl -s "$SCRIPT_URL" > "$0.tmp"; then
         chmod +x "$0.tmp"
         mv "$0.tmp" "$0"
-        echo -e "${GREEN}Update successful. Restarting script...${NC}"
-        sleep 1
+        dialog --title "Success" --msgbox "Update successful. Restarting script..." 5 40
+        rm -f "$tmpfile"
         exec "$0" "${@}"
     else
-        echo -e "${RED}Update failed${NC}"
-        rm -f "$0.tmp"
+        dialog --title "Error" --msgbox "Update failed" 5 40
+        rm -f "$0.tmp" "$tmpfile"
         return 1
     fi
 }
 
-# Simple menu
+# Main menu with dialog
 show_menu() {
-    clear
-    echo "Termux Update Script v$SCRIPT_VERSION"
-    echo "-----------------------------------"
-    echo "1. Force Update"
-    echo "0. Exit"
-    echo "-----------------------------------"
+    while true; do
+        choice=$(dialog --title "Termux Setup Script v$SCRIPT_VERSION" \
+                       --menu "Select an option:" 15 40 4 \
+                       1 "Force Update" \
+                       2 "Continue to Main Script" \
+                       0 "Exit" \
+                       3>&1 1>&2 2>&3)
+        
+        case $choice in
+            1) force_update ;;
+            2) break ;; # Exit the loop to continue to main script
+            0) exit 0 ;;
+            *) continue ;;
+        esac
+    done
     
-    read -p "Select option: " choice
-    
-    case $choice in
-        1) force_update ;;
-        0) exit 0 ;;
-        *) echo -e "${RED}Invalid option${NC}"; sleep 1 ;;
-    esac
-    
-    show_menu
+    # Continue to main script here
+    main_script
+}
+
+# Main script function (your original functionality)
+main_script() {
+    echo -e "${GREEN}Continuing to main script...${NC}"
+    # Add your main script content here
+    # For example:
+    dialog --title "Main Script" --msgbox "This is the main script functionality" 7 40
+}
+
+# Initial check for dialog
+check_dialog || {
+    echo -e "${YELLOW}Dialog not available, falling back to basic menu${NC}"
+    # Fallback to basic menu if dialog can't be installed
+    PS3='Select option: '
+    select opt in "Force Update" "Continue to Main Script" "Exit"; do
+        case $opt in
+            "Force Update") force_update ;;
+            "Continue to Main Script") main_script ;;
+            "Exit") exit 0 ;;
+            *) echo "Invalid option" ;;
+        esac
+    done
 }
 
 # Main execution
