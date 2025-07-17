@@ -2,7 +2,7 @@
 
 # Add this at the top of your script (with other configurations)
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
-SCRIPT_VERSION="1.0"  # Make sure this matches your current version
+SCRIPT_VERSION="1.0.5"  # Make sure this matches your current version
 
 check_termux_storage() {
   if [ ! -d "$HOME/storage" ]; then
