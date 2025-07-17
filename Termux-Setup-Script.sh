@@ -1,72 +1,14 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="1.0.4"
 
-# ====[ Install Zsh Add-ons ]=====
-install_zsh_addons() {
-    echo -e "\e[1;33m[+] Checking Zsh add-ons...\e[0m"
-    
-    # Check if Zsh is installed
-    if ! command -v zsh &> /dev/null; then
-        pkg install -y zsh
-    fi
-
-    # Install Oh-My-Zsh (if missing)
-    if [ ! -d "$HOME/.oh-my-zsh" ]; then
-        echo "Installing Oh-My-Zsh..."
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-    fi
-
-    # Install plugins (if missing)
-    ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-    
-    # AutoSuggestions
-    if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
-        echo "Installing zsh-autosuggestions..."
-        git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
-    fi
-
-    # Syntax Highlighting
-    if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
-        echo "Installing zsh-syntax-highlighting..."
-        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
-    fi
-
-    # Enable plugins in .zshrc (if not already enabled)
-    if ! grep -q "zsh-autosuggestions" ~/.zshrc; then
-        echo "Enabling plugins in ~/.zshrc..."
-        sed -i 's/^plugins=(\(.*\))/plugins=(\1 zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
-    fi
-
-    echo -e "\e[1;32m[✓] Zsh add-ons are ready!\e[0m"
-}
-
-#=====[ Checks For Updates ]======
+# Add this at the top of your script (with other configurations)
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
+SCRIPT_VERSION="1.0"  # Make sure this matches your current version
 
-# Simple update check
-read -p "Would you like to check for updates? (y/n) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "Checking for updates..."
-    
-    # Get remote version
-    remote_version=$(curl -s "$SCRIPT_URL" | grep -m1 "SCRIPT_VERSION=" | cut -d'"' -f2)
-    
-    # Compare versions
-    if [ "$remote_version" != "$SCRIPT_VERSION" ]; then
-        echo "Update found ($remote_version), updating..."
-        if curl -s "$SCRIPT_URL" > "$0.tmp"; then
-            chmod +x "$0.tmp"
-            mv "$0.tmp" "$0"
-            echo "Update complete. Restarting script..."
-            exec "$0" "$@"
-        else
-            echo "Update failed, continuing with current version."
-        fi
-    else
-        echo "Already up to date."
-    fi
-fi
+check_termux_storage() {
+  if [ ! -d "$HOME/storage" ]; then
+    termux-setup-storage
+  fi
+}
 
 # ====[ motd Functions ]====
 motd_prompt() {
@@ -128,12 +70,6 @@ EOF
         ;;
     esac
   done
-}
-
-check_termux_storage() {
-  if [ ! -d "$HOME/storage" ]; then
-    termux-setup-storage
-  fi
 }
 
 # =====[ Radare2 Suite ]=====
@@ -287,7 +223,7 @@ blutter_suite() {
         --menu "Blutter is installed. Choose an option:" 15 50 5 \
         1 "APKEditor" \
         2 "Process arm64-v8a (Auto)" \
-        3 "Install/Update Blutter" \
+        3 "Install Blutter" \
         4 "Hermes (Decompile & Disasm)" \
         5 "Return to MainMenu" 3>&1 1>&2 2>&3)
     else
@@ -472,19 +408,41 @@ blutter_suite() {
         fi
         ;;
       3)
-        # =====[ Blutter Installer ]======
-        if [ -d "$HOME/blutter-termux" ]; then
-          echo -e "${BLUE}[*] Updating Blutter...${RESET}"
-          cd "$HOME/blutter-termux"
-          git pull && echo -e "${GREEN}[✔] Updated${RESET}" || echo -e "${RED}[!] Update failed${RESET}"
+        # =====[ Corrected Blutter Installer ]======
+        echo -e "${BLUE}[*] Starting Blutter installation...${RESET}"
+        
+        # Update system packages
+        echo -e "${YELLOW}[!] Updating system packages...${RESET}"
+        pkg update -y && pkg upgrade -y
+        
+        # Install dependencies
+        echo -e "${YELLOW}[!] Installing dependencies...${RESET}"
+        pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt
+        
+        # Install Python packages
+        echo -e "${YELLOW}[!] Installing Python dependencies...${RESET}"
+        pip install requests pyelftools
+        
+        # Clone repository
+        echo -e "${YELLOW}[!] Cloning Blutter repository...${RESET}"
+        cd $HOME
+        if git clone https://github.com/dedshit/blutter-termux.git; then
+          echo -e "${GREEN}[✔] Repository cloned successfully${RESET}"
+          
+          # Check for std::format errors and fix if needed
+          echo -e "${YELLOW}[!] Checking for compilation issues...${RESET}"
+          if grep -r "std::format" $HOME/blutter-termux/; then
+            echo -e "${YELLOW}[!] Found std::format usage, replacing with fmt::format...${RESET}"
+            find $HOME/blutter-termux/ -type f -exec sed -i 's/std::format/fmt::format/g' {} +
+            echo -e "${GREEN}[✔] Source files modified${RESET}"
+          fi
+          
+          echo -e "${GREEN}[✔] Blutter installed successfully!${RESET}"
+          echo -e "To run Blutter, execute:"
+          echo -e "cd ~/blutter-termux && ./blutter"
         else
-          echo -e "${BLUE}[*] Installing Blutter...${RESET}"
-          pkg install -y git cmake ninja build-essential pkg-config \
-                         libicu-dev capstone-dev fmt-dev python ffmpeg
-          pip install requests pyelftools
-          cd $HOME
-          git clone https://github.com/dedshit/blutter-termux.git
-          echo -e "${GREEN}[✔] Installed! Run: cd ~/blutter-termux && ./blutter${RESET}"
+          echo -e "${RED}[!] Failed to clone repository${RESET}"
+          echo -e "Please check your internet connection and try again"
         fi
         sleep 2
         ;;
@@ -514,19 +472,19 @@ main_menu() {
     while true; do
         main_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
             --title "Main Menu" \
-            --menu "Choose an option:" 20 60 11 \
+            --menu "Choose an option:" 20 60 10 \
+            0 "Install Zsh Add-ons" \
             1 "Blutter Suite" \
             2 "Radare2 Suite" \
             3 "Python Packages + Plugins" \
-            4 "Backup Termux Environment" \
-            5 "Restore Termux Environment" \
-            6 "Wipe All Packages (Caution!)" \
-            7 "Update Script" \
-            8 "MOTD Settings" \
-            9 "Exit Script" 3>&1 1>&2 2>&3)
+            4 "Backup & Wipe Tools" \
+            5 "Update Script" \
+            6 "MOTD Settings" \
+            7 "Exit Script" 3>&1 1>&2 2>&3)
 
         clear
         case "$main_choice" in
+            0) install_zsh_addons ;;
             1) blutter_suite ;;
             2) radare2_suite ;;
             3)
@@ -539,15 +497,60 @@ main_menu() {
                 echo -e "\e[1;32m[✓] Installation complete!\e[0m"
                 sleep 2
                 ;;
-            4)
+            4) backup_wipe_menu ;;
+            5) 
+                echo -e "\e[1;33m[*] Checking for script updates...\e[0m"
+                remote_version=$(curl -s "$SCRIPT_URL" | grep -m1 "SCRIPT_VERSION=" | cut -d'"' -f2)
+                
+                if [ "$remote_version" != "$SCRIPT_VERSION" ]; then
+                    echo -e "\e[1;32m[+] Update found ($remote_version), updating...\e[0m"
+                    if curl -s "$SCRIPT_URL" > "$0.tmp"; then
+                        chmod +x "$0.tmp"
+                        mv "$0.tmp" "$0"
+                        echo -e "\e[1;32m[✓] Update complete. Restarting script...\e[0m"
+                        sleep 2
+                        exec "$0" "$@"
+                    else
+                        echo -e "\e[1;31m[!] Update failed, continuing with current version.\e[0m"
+                        sleep 2
+                    fi
+                else
+                    echo -e "\e[1;32m[✓] Already up to date.\e[0m"
+                    sleep 2
+                fi
+                ;;
+            6) motd_prompt ;;
+            7)
+                echo "Exiting..."
+                exit 0
+                ;;
+            *) echo "Invalid option" ;;
+        esac
+    done
+}
+
+# ====[ Backup & Wipe Submenu ]=====
+backup_wipe_menu() {
+    while true; do
+        sub_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
+            --title "Backup & Wipe Tools" \
+            --menu "Choose an option:" 15 50 4 \
+            1 "Backup Termux Environment" \
+            2 "Restore Termux Environment" \
+            3 "Wipe All Packages (Caution!)" \
+            4 "Return to Main Menu" 3>&1 1>&2 2>&3)
+
+        clear
+        case "$sub_choice" in
+            1)
                 echo "[+] Backing up Termux..."
                 tar -zcf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files ./home ./usr
                 ;;
-            5)
+            2)
                 echo "[+] Restoring Termux..."
                 tar -zxf /sdcard/termux-backup.tar.gz -C /data/data/com.termux/files --recursive-unlink
                 ;;
-            6)
+            3)
                 echo "[!] WARNING: This will wipe your Termux environment!"
                 read -rp "Type YES to confirm: " confirm_wipe
                 if [[ "$confirm_wipe" == "YES" ]]; then
@@ -558,30 +561,83 @@ main_menu() {
                     echo "Cancelled."
                 fi
                 ;;
-            7) 
-                echo "[*] Checking for script updates..."
-                check_updates
-                result=$?
-                if [ "$result" -eq 2 ]; then
-                    echo "[*] Restarting script with updated version..."
-                    sleep 2
-                    exec bash "$0"
-                else
-                    echo "[*] No update needed or update failed. Returning to main menu in 3 seconds..."
-                    sleep 3
-                fi
-                ;;
-            8) motd_prompt ;;
-            9)
-                echo "Exiting..."
-                exit 0
-                ;;
+            4) return ;;
             *) echo "Invalid option" ;;
         esac
     done
 }
 
+# ====[ Install Zsh Add-ons ]=====
+install_zsh_addons() {
+    echo -e "\e[1;33m[+] Installing Zsh and add-ons...\e[0m"
+    
+    # Update packages first
+    yes | pkg update -y && yes | pkg upgrade -y
+    
+    # Install Zsh if not installed
+    if ! command -v zsh &> /dev/null; then
+        echo -e "\e[1;32m[+] Installing Zsh...\e[0m"
+        yes | pkg install -y zsh
+    else
+        echo -e "\e[1;32m[✓] Zsh is already installed\e[0m"
+    fi
+
+    # Install dependencies for Oh-My-Zsh
+    yes | pkg install -y git curl
+
+    # Install Oh-My-Zsh (if missing)
+    if [ ! -d "$HOME/.oh-my-zsh" ]; then
+        echo -e "\e[1;32m[+] Installing Oh-My-Zsh...\e[0m"
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+    else
+        echo -e "\e[1;32m[✓] Oh-My-Zsh is already installed\e[0m"
+    fi
+
+    # Install plugins (if missing)
+    ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+    
+    # AutoSuggestions
+    if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
+        echo -e "\e[1;32m[+] Installing zsh-autosuggestions...\e[0m"
+        git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
+    else
+        echo -e "\e[1;32m[✓] zsh-autosuggestions is already installed\e[0m"
+    fi
+
+    # Syntax Highlighting
+    if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
+        echo -e "\e[1;32m[+] Installing zsh-syntax-highlighting...\e[0m"
+        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
+    else
+        echo -e "\e[1;32m[✓] zsh-syntax-highlighting is already installed\e[0m"
+    fi
+
+    # Enable plugins in .zshrc (if not already enabled)
+    if [ ! -f ~/.zshrc ]; then
+        # Create .zshrc if it doesn't exist
+        cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
+    fi
+
+    if ! grep -q "zsh-autosuggestions" ~/.zshrc; then
+        echo -e "\e[1;32m[+] Enabling plugins in ~/.zshrc...\e[0m"
+        sed -i 's/^plugins=(\(.*\))/plugins=(\1 zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
+    else
+        echo -e "\e[1;32m[✓] Plugins are already enabled in ~/.zshrc\e[0m"
+    fi
+
+    # Set Zsh as default shell if not already
+    if [ "$SHELL" != "/data/data/com.termux/files/usr/bin/zsh" ]; then
+        echo -e "\e[1;32m[+] Setting Zsh as default shell...\e[0m"
+        chsh -s zsh
+    else
+        echo -e "\e[1;32m[✓] Zsh is already the default shell\e[0m"
+    fi
+
+    echo -e "\e[1;32m[✓] Zsh and add-ons installation complete!\e[0m"
+    echo -e "\e[1;33m[!] You may need to restart your Termux session for changes to take effect.\e[0m"
+}
+
 # =========[ Start Script ]=========
 check_termux_storage  # Ensure storage permissions
-install_zsh_addons    # Auto-install Zsh plugins
 main_menu             # Launch the main menu
+
