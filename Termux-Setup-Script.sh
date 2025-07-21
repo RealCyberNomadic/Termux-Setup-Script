@@ -5,7 +5,7 @@ SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Scri
 
 #==== [ Match GitHub Version ] =====
 
-SCRIPT_VERSION="1.0.7"  # Make sure this matches your current version
+SCRIPT_VERSION="1.0.8"  # Make sure this matches your current version
 
 check_termux_storage() {
   if [ ! -d "$HOME/storage" ]; then
@@ -715,7 +715,6 @@ remove_dex2c() {
 
     dialog --msgbox "All Dex2c components and related packages were removed successfully." 7 50
 }
-
 # ====[ Check Dependencies ]=====
 check_dex2c_deps() {
     deps_missing=0
@@ -751,50 +750,65 @@ check_dex2c_deps() {
 }
 # ====[ Check Dependencies ]=====
 check_dex2c_deps() {
-    deps_missing=0
-    check_result="Dependency Check Results:\n\n"
+    missing_pkgs=0
+    check_result="Dependency Check:\n\n"
     
-    # Unified check function
-    check_item() {
-        local name=$1 type=$2 target=$3
-        local status="✓" result=0
-        
-        case $type in
-            "cmd") command -v "$target" >/dev/null 2>&1 || { status="✗"; result=1; } ;;
-            "dir") [ -d "$target" ] || { status="✗"; result=1; } ;;
-            "pkg") dpkg -s "$target" >/dev/null 2>&1 || { status="✗"; result=1; } ;;
-        esac
-        
-        check_result+="$status $name\n"
-        return $result
+    # Check package function
+    check_pkg() {
+        if dpkg -s "$1" >/dev/null 2>&1; then
+            check_result+="✓ $1\n"
+        else
+            check_result+="✗ $1\n"
+            missing_pkgs=1
+        fi
     }
     
-    # Check essential tools
-    check_item "Git" "cmd" "git" || deps_missing=1
-    check_item "Wget" "cmd" "wget" || deps_missing=1
-    check_item "Unzip" "cmd" "unzip" || deps_missing=1
+    # Check directory function 
+    check_dir() {
+        [ -d "$1" ] && check_result+="✓ $2\n" || check_result+="✗ $2\n"
+    }
     
-    # Check DEX2C components
-    check_item "DEX2C" "dir" "$HOME/dex2c" || deps_missing=1
-    check_item "NDK" "dir" "$HOME/ndk" || deps_missing=1
+    # Check required packages
+    check_pkg "git"
+    check_pkg "wget"
+    check_pkg "unzip"
+    check_pkg "python"
+    check_pkg "openjdk-17"
+    check_pkg "clang"
+    check_pkg "make"
     
-    if [ $deps_missing -eq 0 ]; then
-        dialog --title "Dependency Check" --msgbox "${check_result}\nAll dependencies are satisfied." 12 50
+    # Check components (no auto-install)
+    check_dir "$HOME/dex2c" "Dex2c"
+    check_dir "$HOME/ndk" "NDK"
+    
+    if [ $missing_pkgs -eq 0 ]; then
+        dialog --title "Dependencies" --msgbox "${check_result}\nAll packages are installed." 15 60
     else
-        dialog --title "Dependency Check" --yesno "${check_result}\n\nMissing dependencies found. Install now?" 12 50 && install_dex2c
+        dialog --title "Missing Packages" --yesno "${check_result}\n\nInstall missing packages now?" 15 60 && {
+            (
+                echo "20"; echo "# Updating packages...";
+                pkg update -y >/dev/null 2>&1
+                
+                echo "50"; echo "# Installing missing packages...";
+                pkg install -y git wget unzip python openjdk-17 clang make >/dev/null 2>&1
+                
+                echo "100"; echo "# Done!";
+                sleep 1
+            ) | dialog --gauge "Installing packages..." 10 70 0
+        }
     fi
 }
 
-# ====[ Remove DEX2C ]=====
+# ====[ Remove Dex2c ]=====
 remove_dex2c() {
     # List of packages to remove (customize as needed)
     PKG_LIST="openjdk-17 make cmake git wget unzip"
     
-    dialog --yesno "WARNING: This will remove:\n\n- DEX2C files (~/dex2c)\n- NDK files (~/ndk)\n- Packages: $PKG_LIST\n\nContinue?" 13 50 || return
+    dialog --yesno "WARNING: This will remove:\n\n- Dex2c files (~/dex2c)\n- NDK files (~/ndk)\n- Packages: $PKG_LIST\n\nContinue?" 13 50 || return
 
     (
         echo "10"
-        echo "# Removing DEX2C files..."
+        echo "# Removing Dex2c files..."
         rm -rf "$HOME/dex2c"
         
         echo "25" 
@@ -822,9 +836,9 @@ remove_dex2c() {
         echo "100"
         echo "# Uninstall complete!"
         sleep 1
-    ) | dialog --title "DEX2C Removal" --gauge "Uninstalling..." 10 70 0
+    ) | dialog --title "Dex2c Removal" --gauge "Uninstalling..." 10 70 0
 
-    dialog --msgbox "DEX2C and all related components were successfully removed." 7 50
+    dialog --msgbox "Dex2c and all related components were successfully removed." 7 50
 }
 # ====[ Backup & Wipe Submenu ]=====
 backup_wipe_menu() {
