@@ -5,7 +5,7 @@ SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Scri
 
 #==== [ Match GitHub Version ] =====
 
-SCRIPT_VERSION="1.0.6"  # Make sure this matches your current version
+SCRIPT_VERSION="1.0.6"
 
 check_termux_storage() {
   if [ ! -d "$HOME/storage" ]; then
