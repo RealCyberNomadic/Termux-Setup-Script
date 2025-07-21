@@ -5,7 +5,7 @@ SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Scri
 
 #==== [ Match GitHub Version ] =====
 
-SCRIPT_VERSION="1.0.5"  # Make sure this matches your current version
+SCRIPT_VERSION="1.0.6"  # Make sure this matches your current version
 
 check_termux_storage() {
   if [ ! -d "$HOME/storage" ]; then
@@ -470,12 +470,49 @@ blutter_suite() {
   done
 }
 
+# =========[ Refresh Function ]=========
+refresh_script() {
+    echo -e "\e[1;32m[+] Refreshing script...\e[0m"
+    # Store current variables that need to persist
+    local current_dir="$PWD"
+    local stored_vars="SCRIPT_VERSION=$SCRIPT_VERSION"
+    
+    # Clear the screen and re-execute with preserved environment
+    clear
+    exec env $stored_vars bash "$0" --refreshed "$@"
+    
+    # If exec fails (shouldn't happen)
+    echo -e "\e[1;31m[!] Refresh failed\e[0m"
+    return 1
+}
+
+# ====[ Install Zsh Add-ons ]=====
+install_zsh_addons() {
+    echo -e "\e[1;33m[+] Installing Zsh Add-ons...\e[0m"
+    pkg install -y zsh git curl
+    export ZSH="$HOME/.oh-my-zsh"
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+    ZSH_CUSTOM=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
+    git clone https://github.com/zsh-users/zsh-autosuggestions.git $ZSH_CUSTOM/plugins/zsh-autosuggestions
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
+    sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
+    echo -e "\e[1;32m[✓] Zsh add-ons installation complete!\e[0m"
+    sleep 2
+}
+
 # =========[ Main Menu ]=========
 main_menu() {
+    # Check if we're coming from a refresh
+    if [ "$1" == "--refreshed" ]; then
+        echo -e "\e[1;32m[✓] Script refreshed successfully!\e[0m"
+        sleep 1
+        clear
+    fi
+
     while true; do
         main_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
             --title "Main Menu" \
-            --menu "Choose an option:" 20 60 10 \
+            --menu "Choose an option:" 22 60 12 \
             0 "Install Zsh Add-ons" \
             1 "Blutter Suite" \
             2 "Radare2 Suite" \
@@ -483,7 +520,9 @@ main_menu() {
             4 "Backup & Wipe Tools" \
             5 "Update Script" \
             6 "MOTD Settings" \
-            7 "Exit Script" 3>&1 1>&2 2>&3)
+            7 "DEX2C Tools" \
+            8 "Refresh Script" \
+            9 "Exit Script" 3>&1 1>&2 2>&3)
 
         clear
         case "$main_choice" in
@@ -523,13 +562,134 @@ main_menu() {
                 fi
                 ;;
             6) motd_prompt ;;
-            7)
+            7) dex2c_menu ;;
+            8) refresh_script ;;
+            9)
                 echo "Exiting..."
                 exit 0
                 ;;
             *) echo "Invalid option" ;;
         esac
     done
+}
+
+# ====[ DEX2C Submenu ]=====
+dex2c_menu() {
+    while true; do
+        dex_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
+            --title "DEX2C Tools" \
+            --menu "Choose an option:" 15 50 4 \
+            1 "Install DEX2C" \
+            2 "Remove DEX2C" \
+            3 "Return to Main Menu" 3>&1 1>&2 2>&3)
+
+        clear
+        case "$dex_choice" in
+            1) install_dex2c ;;
+            2) remove_dex2c ;;
+            3) return ;;
+            *) echo "Invalid option" ;;
+        esac
+    done
+}
+
+# ====[ Install DEX2C ]=====
+install_dex2c() {
+    echo -e "\e[1;33m[+] Installing DEX2C...\e[0m"
+    
+    # Step 1: Install Required Packages
+    echo -e "\e[1;32m[+] Installing dependencies...\e[0m"
+    pkg update -y && pkg upgrade -y
+    pkg install -y git wget unzip zip curl clang make proot python openjdk-17
+    
+    # Step 2: Clone Repository
+    echo -e "\e[1;32m[+] Cloning dex2c repository...\e[0m"
+    if [ -d "$HOME/dex2c" ]; then
+        echo -e "\e[1;31m[!] dex2c directory already exists at $HOME/dex2c\e[0m"
+        read -p "Overwrite? (y/n): " overwrite
+        if [[ "$overwrite" != "y" ]]; then
+            echo "Installation cancelled."
+            return
+        fi
+        rm -rf "$HOME/dex2c"
+    fi
+    git clone https://github.com/RealCyberNomadic/dex2c "$HOME/dex2c"
+    cd "$HOME/dex2c" || { echo -e "\e[1;31m[!] Failed to enter dex2c directory"; return 1; }
+    
+    # Step 3: Download Apktool
+    echo -e "\e[1;32m[+] Downloading Apktool...\e[0m"
+    mkdir -p tools
+    cd tools || return
+    wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar -O apktool.jar
+    cd ..
+    
+    # Step 4: Download and Extract NDK
+    echo -e "\e[1;32m[+] Downloading Android NDK...\e[0m"
+    cd "$HOME" || return
+    if [ -d "ndk" ]; then
+        echo -e "\e[1;33m[!] NDK directory already exists at $HOME/ndk\e[0m"
+        read -p "Overwrite? (y/n): " overwrite
+        if [[ "$overwrite" == "y" ]]; then
+            rm -rf ndk android-ndk-r26b-linux.zip
+        fi
+    fi
+    
+    if [ ! -d "ndk" ]; then
+        wget https://dl.google.com/android/repository/android-ndk-r26b-linux.zip
+        unzip android-ndk-r26b-linux.zip
+        mv android-ndk-r26b ndk
+        rm android-ndk-r26b-linux.zip
+    fi
+    
+    # Step 5: Set Environment Variables
+    echo -e "\e[1;32m[+] Configuring environment...\e[0m"
+    if ! grep -q 'export NDK=$HOME/ndk' ~/.bashrc; then
+        echo 'export NDK=$HOME/ndk' >> ~/.bashrc
+        echo 'export PATH=$NDK:$PATH' >> ~/.bashrc
+    fi
+    source ~/.bashrc
+    
+    # Verification
+    echo -e "\e[1;32m[✓] Installation complete!\e[0m"
+    echo -e "\e[1;36mDEX2C location: $HOME/dex2c\e[0m"
+    echo -e "\e[1;36mNDK location: $HOME/ndk\e[0m"
+    echo -e "\e[1;33mVerification:\e[0m"
+    echo "NDK path: $NDK"
+    ls "$NDK" | head -n 5
+    echo -e "\e[1;33m[!] You may need to restart your terminal or run: source ~/.bashrc\e[0m"
+    sleep 3
+}
+
+# ====[ Remove DEX2C ]=====
+remove_dex2c() {
+    echo -e "\e[1;33m[+] Removing DEX2C and related tools...\e[0m"
+    
+    # Array of directories to remove
+    dirs_to_remove=(
+        "$HOME/dex2c"
+        "$HOME/android-sdk"
+        "$HOME/androidide-tools"
+        "$HOME/android-ndk-r26b"
+        "$HOME/ndk"
+    )
+    
+    # Remove each directory if it exists
+    removed_any=false
+    for dir in "${dirs_to_remove[@]}"; do
+        if [ -d "$dir" ]; then
+            echo -e "\e[1;32m[+] Removing $dir\e[0m"
+            rm -rf "$dir"
+            removed_any=true
+        fi
+    done
+    
+    if [ "$removed_any" = true ]; then
+        echo -e "\e[1;32m[✓] Removal complete\e[0m"
+    else
+        echo -e "\e[1;31m[!] No DEX2C related directories found\e[0m"
+    fi
+    
+    sleep 2
 }
 
 # ====[ Backup & Wipe Submenu ]=====
@@ -570,77 +730,6 @@ backup_wipe_menu() {
     done
 }
 
-# ====[ Install Zsh Add-ons ]=====
-install_zsh_addons() {
-    echo -e "\e[1;33m[+] Installing Zsh and add-ons...\e[0m"
-    
-    # Update packages first
-    yes | pkg update -y && yes | pkg upgrade -y
-    
-    # Install Zsh if not installed
-    if ! command -v zsh &> /dev/null; then
-        echo -e "\e[1;32m[+] Installing Zsh...\e[0m"
-        yes | pkg install -y zsh
-    else
-        echo -e "\e[1;32m[✓] Zsh is already installed\e[0m"
-    fi
-
-    # Install dependencies for Oh-My-Zsh
-    yes | pkg install -y git curl
-
-    # Install Oh-My-Zsh (if missing)
-    if [ ! -d "$HOME/.oh-my-zsh" ]; then
-        echo -e "\e[1;32m[+] Installing Oh-My-Zsh...\e[0m"
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-    else
-        echo -e "\e[1;32m[✓] Oh-My-Zsh is already installed\e[0m"
-    fi
-
-    # Install plugins (if missing)
-    ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-    
-    # AutoSuggestions
-    if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
-        echo -e "\e[1;32m[+] Installing zsh-autosuggestions...\e[0m"
-        git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
-    else
-        echo -e "\e[1;32m[✓] zsh-autosuggestions is already installed\e[0m"
-    fi
-
-    # Syntax Highlighting
-    if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
-        echo -e "\e[1;32m[+] Installing zsh-syntax-highlighting...\e[0m"
-        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
-    else
-        echo -e "\e[1;32m[✓] zsh-syntax-highlighting is already installed\e[0m"
-    fi
-
-    # Enable plugins in .zshrc (if not already enabled)
-    if [ ! -f ~/.zshrc ]; then
-        # Create .zshrc if it doesn't exist
-        cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
-    fi
-
-    if ! grep -q "zsh-autosuggestions" ~/.zshrc; then
-        echo -e "\e[1;32m[+] Enabling plugins in ~/.zshrc...\e[0m"
-        sed -i 's/^plugins=(\(.*\))/plugins=(\1 zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
-    else
-        echo -e "\e[1;32m[✓] Plugins are already enabled in ~/.zshrc\e[0m"
-    fi
-
-    # Set Zsh as default shell if not already
-    if [ "$SHELL" != "/data/data/com.termux/files/usr/bin/zsh" ]; then
-        echo -e "\e[1;32m[+] Setting Zsh as default shell...\e[0m"
-        chsh -s zsh
-    else
-        echo -e "\e[1;32m[✓] Zsh is already the default shell\e[0m"
-    fi
-
-    echo -e "\e[1;32m[✓] Zsh and add-ons installation complete!\e[0m"
-    echo -e "\e[1;33m[!] You may need to restart your Termux session for changes to take effect.\e[0m"
-}
-
 # =========[ Start Script ]=========
 check_termux_storage  # Ensure storage permissions
 main_menu             # Launch the main menu
-
