@@ -5,14 +5,13 @@ SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Scri
 
 #==== [ Match GitHub Version ] =====
 
-SCRIPT_VERSION="1.0.6"
+SCRIPT_VERSION="1.0.7"  # Make sure this matches your current version
 
 check_termux_storage() {
   if [ ! -d "$HOME/storage" ]; then
     termux-setup-storage
   fi
 }
-
 # ====[ motd Functions ]====
 motd_prompt() {
   while true; do
@@ -74,7 +73,6 @@ EOF
     esac
   done
 }
-
 # =====[ Radare2 Suite ]=====
 radare2_suite() {
   while true; do
@@ -208,7 +206,6 @@ radare2_suite() {
     esac
   done
 }
-
 # =====[ Blutter Suite ]=====
 blutter_suite() {
   # Define color codes
@@ -469,7 +466,6 @@ blutter_suite() {
     esac
   done
 }
-
 # =========[ Refresh Function ]=========
 refresh_script() {
     echo -e "\e[1;32m[+] Refreshing script...\e[0m"
@@ -485,7 +481,6 @@ refresh_script() {
     echo -e "\e[1;31m[!] Refresh failed\e[0m"
     return 1
 }
-
 # ====[ Install Zsh Add-ons ]=====
 install_zsh_addons() {
     echo -e "\e[1;33m[+] Installing Zsh Add-ons...\e[0m"
@@ -499,7 +494,6 @@ install_zsh_addons() {
     echo -e "\e[1;32m[✓] Zsh add-ons installation complete!\e[0m"
     sleep 2
 }
-
 # =========[ Main Menu ]=========
 main_menu() {
     # Check if we're coming from a refresh
@@ -520,7 +514,7 @@ main_menu() {
             4 "Backup & Wipe Tools" \
             5 "Update Script" \
             6 "MOTD Settings" \
-            7 "DEX2C Tools" \
+            7 "Dex2c Tools" \
             8 "Refresh Script" \
             9 "Exit Script" 3>&1 1>&2 2>&3)
 
@@ -572,126 +566,266 @@ main_menu() {
         esac
     done
 }
-
-# ====[ DEX2C Submenu ]=====
+# ====[ Dex2c Submenu ]=====
 dex2c_menu() {
     while true; do
         dex_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
-            --title "DEX2C Tools" \
+            --title "Dex2c Tools" \
             --menu "Choose an option:" 15 50 4 \
-            1 "Install DEX2C" \
-            2 "Remove DEX2C" \
-            3 "Return to Main Menu" 3>&1 1>&2 2>&3)
+            1 "Install Dex2c" \
+            2 "Remove Dex2c" \
+            3 "Check Dependencies" \
+            4 "Return to Main Menu" 3>&1 1>&2 2>&3)
 
         clear
         case "$dex_choice" in
             1) install_dex2c ;;
             2) remove_dex2c ;;
-            3) return ;;
+            3) check_dex2c_deps ;;
+            4) return ;;
             *) echo "Invalid option" ;;
         esac
     done
 }
 
-# ====[ Install DEX2C ]=====
+# ====[ Silent Package Manager ]=====
+termux_pkg() {
+    case $1 in
+        update)
+            apt-get update -y -qq \
+                -o Dpkg::Options::="--force-confdef" \
+                -o Dpkg::Options::="--force-confold" >/dev/null 2>&1
+            ;;
+        upgrade)
+            apt-get upgrade -y -qq \
+                -o Dpkg::Options::="--force-confdef" \
+                -o Dpkg::Options::="--force-confold" >/dev/null 2>&1
+            ;;
+        install)
+            shift
+            for pkg in "$@"; do
+                if ! dpkg -s "$pkg" >/dev/null 2>&1; then
+                    apt-get install -y -qq \
+                        -o Dpkg::Options::="--force-confdef" \
+                        -o Dpkg::Options::="--force-confold" \
+                        --no-install-recommends \
+                        "$pkg" >/dev/null 2>&1 || return 1
+                fi
+            done
+            ;;
+        *) return 1 ;;
+    esac
+}
+# ====[ Install Dex2c ]=====
 install_dex2c() {
-    echo -e "\e[1;33m[+] Installing DEX2C...\e[0m"
-    
-    # Step 1: Install Required Packages
-    echo -e "\e[1;32m[+] Installing dependencies...\e[0m"
-    pkg update -y && pkg upgrade -y
-    pkg install -y git wget unzip zip curl clang make proot python openjdk-17
-    
-    # Step 2: Clone Repository
-    echo -e "\e[1;32m[+] Cloning dex2c repository...\e[0m"
-    if [ -d "$HOME/dex2c" ]; then
-        echo -e "\e[1;31m[!] dex2c directory already exists at $HOME/dex2c\e[0m"
-        read -p "Overwrite? (y/n): " overwrite
-        if [[ "$overwrite" != "y" ]]; then
-            echo "Installation cancelled."
-            return
-        fi
+    (
+        echo "10"
+        echo "# Checking system requirements..."
+        
+        echo "20"
+        echo "# Updating package lists..."
+        termux_pkg update || { echo "Package update failed" >&2; exit 1; }
+        
+        echo "30"
+        echo "# Upgrading existing packages..."
+        termux_pkg upgrade || { echo "Package upgrade failed" >&2; exit 1; }
+        
+        echo "40"
+        echo "# Installing core dependencies..."
+        termux_pkg install git wget unzip zip curl clang make proot python openjdk-17 || { echo "Dependency installation failed" >&2; exit 1; }
+        
+        echo "50"
+        echo "# Preparing Dex2c environment..."
+        [ -d "$HOME/dex2c" ] && rm -rf "$HOME/dex2c"
+        
+        echo "60"
+        echo "# Cloning Dex2c repository..."
+        git clone -q https://github.com/RealCyberNomadic/dex2c "$HOME/dex2c" || { echo "Clone failed" >&2; exit 1; }
+        
+        echo "70"
+        echo "# Setting up Apktool..."
+        mkdir -p "$HOME/dex2c/tools"
+        wget -q https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar -O "$HOME/dex2c/tools/apktool.jar" || { echo "Apktool download failed" >&2; exit 1; }
+        
+        echo "80"
+        echo "# Installing NDK..."
+        [ -d "$HOME/ndk" ] && rm -rf "$HOME/ndk"
+        wget -q https://dl.google.com/android/repository/android-ndk-r26b-linux.zip -O "$HOME/ndk.zip" || { echo "NDK download failed" >&2; exit 1; }
+        unzip -q "$HOME/ndk.zip" -d "$HOME" || { echo "NDK extraction failed" >&2; exit 1; }
+        mv "$HOME/android-ndk-r26b" "$HOME/ndk"
+        rm "$HOME/ndk.zip"
+        
+        echo "90"
+        echo "# Configuring environment..."
+        grep -q 'export NDK=' "$HOME/.bashrc" || echo 'export NDK=$HOME/ndk' >> "$HOME/.bashrc"
+        grep -q 'export PATH=$NDK:$PATH' "$HOME/.bashrc" || echo 'export PATH=$NDK:$PATH' >> "$HOME/.bashrc"
+        
+        echo "100"
+        echo "# Finalizing installation..."
+        sleep 1
+    ) | dialog --title "Dex2c Installation" --gauge "Installing Dex2c..." 10 70 0
+
+    # Verify installation
+    if [ -d "$HOME/dex2c" ] && [ -d "$HOME/ndk" ]; then
+        dialog --msgbox "Dex2c installed successfully!\n\nLocation: $HOME/dex2c\nNDK: $HOME/ndk" 9 50
+    else
+        dialog --msgbox "Installation completed with possible errors.\nCheck $HOME/dex2c and $HOME/ndk exist." 9 50
+    fi
+}
+
+# ====[ Remove Dex2c ]=====
+remove_dex2c() {
+    dialog --yesno "WARNING: This will completely remove:\n\n- Dex2c and all components\n- NDK\n- Android SDK\n- Related packages\n\nContinue?" 12 50 || return
+
+    (
+        echo "20"
+        echo "# Removing Dex2c core..."
         rm -rf "$HOME/dex2c"
-    fi
-    git clone https://github.com/RealCyberNomadic/dex2c "$HOME/dex2c"
-    cd "$HOME/dex2c" || { echo -e "\e[1;31m[!] Failed to enter dex2c directory"; return 1; }
+        
+        echo "30"
+        echo "# Removing NDK..."
+        rm -rf "$HOME/ndk"
+        
+        echo "40"
+        echo "# Removing Android SDK..."
+        rm -rf "$HOME/android-sdk"
+        
+        echo "50"
+        echo "# Uninstalling packages..."
+        apt-get remove -y -qq \
+            -o Dpkg::Options::="--force-confdef" \
+            -o Dpkg::Options::="--force-confold" \
+            --auto-remove \
+            dex2c ndk android-sdk gwet unzip java make >/dev/null 2>&1
+        
+        echo "70"
+        echo "# Cleaning package cache..."
+        apt-get clean -y -qq >/dev/null 2>&1
+        
+        echo "80"
+        echo "# Updating environment..."
+        sed -i '/export NDK=\$HOME\/ndk/d' "$HOME/.bashrc"
+        sed -i '/export PATH=\$NDK:\$PATH/d' "$HOME/.bashrc"
+        sed -i '/export ANDROID_SDK=\$HOME\/android-sdk/d' "$HOME/.bashrc"
+        
+        echo "100"
+        echo "# Removal complete!"
+        sleep 1
+    ) | dialog --title "Dex2c Removal" --gauge "Cleaning system..." 10 70 0
+
+    dialog --msgbox "All Dex2c components and related packages were removed successfully." 7 50
+}
+
+# ====[ Check Dependencies ]=====
+check_dex2c_deps() {
+    deps_missing=0
+    check_result="Dependency Check Results:\n\n"
     
-    # Step 3: Download Apktool
-    echo -e "\e[1;32m[+] Downloading Apktool...\e[0m"
-    mkdir -p tools
-    cd tools || return
-    wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar -O apktool.jar
-    cd ..
-    
-    # Step 4: Download and Extract NDK
-    echo -e "\e[1;32m[+] Downloading Android NDK...\e[0m"
-    cd "$HOME" || return
-    if [ -d "ndk" ]; then
-        echo -e "\e[1;33m[!] NDK directory already exists at $HOME/ndk\e[0m"
-        read -p "Overwrite? (y/n): " overwrite
-        if [[ "$overwrite" == "y" ]]; then
-            rm -rf ndk android-ndk-r26b-linux.zip
+    # Check commands
+    check_cmd() {
+        if command -v "$1" >/dev/null 2>&1; then
+            check_result+="✓ $1 installed\n"
+            return 0
+        else
+            check_result+="✗ $1 missing\n"
+            return 1
         fi
-    fi
+    }
     
-    if [ ! -d "ndk" ]; then
-        wget https://dl.google.com/android/repository/android-ndk-r26b-linux.zip
-        unzip android-ndk-r26b-linux.zip
-        mv android-ndk-r26b ndk
-        rm android-ndk-r26b-linux.zip
-    fi
+    check_cmd git || deps_missing=1
+    check_cmd wget || deps_missing=1
+    check_cmd unzip || deps_missing=1
+    check_cmd python || deps_missing=1
+    check_cmd java || deps_missing=1
+    check_cmd make || deps_missing=1
     
-    # Step 5: Set Environment Variables
-    echo -e "\e[1;32m[+] Configuring environment...\e[0m"
-    if ! grep -q 'export NDK=$HOME/ndk' ~/.bashrc; then
-        echo 'export NDK=$HOME/ndk' >> ~/.bashrc
-        echo 'export PATH=$NDK:$PATH' >> ~/.bashrc
-    fi
-    source ~/.bashrc
+    # Simplified check without directory paths
+    [ -d "$HOME/dex2c" ] || { check_result+="✗ Dex2c not installed\n"; deps_missing=1; }
+    [ -d "$HOME/ndk" ] || { check_result+="✗ NDK not installed\n"; deps_missing=1; }
     
-    # Verification
-    echo -e "\e[1;32m[✓] Installation complete!\e[0m"
-    echo -e "\e[1;36mDEX2C location: $HOME/dex2c\e[0m"
-    echo -e "\e[1;36mNDK location: $HOME/ndk\e[0m"
-    echo -e "\e[1;33mVerification:\e[0m"
-    echo "NDK path: $NDK"
-    ls "$NDK" | head -n 5
-    echo -e "\e[1;33m[!] You may need to restart your terminal or run: source ~/.bashrc\e[0m"
-    sleep 3
+    if [ $deps_missing -eq 0 ]; then
+        dialog --title "Dependency Check" --msgbox "${check_result}\nAll dependencies are satisfied." 12 50
+    else
+        dialog --title "Dependency Check" --yesno "${check_result}\n\nMissing dependencies found. Install now?" 12 50 && install_dex2c
+    fi
+}
+# ====[ Check Dependencies ]=====
+check_dex2c_deps() {
+    deps_missing=0
+    check_result="Dependency Check Results:\n\n"
+    
+    # Unified check function
+    check_item() {
+        local name=$1 type=$2 target=$3
+        local status="✓" result=0
+        
+        case $type in
+            "cmd") command -v "$target" >/dev/null 2>&1 || { status="✗"; result=1; } ;;
+            "dir") [ -d "$target" ] || { status="✗"; result=1; } ;;
+            "pkg") dpkg -s "$target" >/dev/null 2>&1 || { status="✗"; result=1; } ;;
+        esac
+        
+        check_result+="$status $name\n"
+        return $result
+    }
+    
+    # Check essential tools
+    check_item "Git" "cmd" "git" || deps_missing=1
+    check_item "Wget" "cmd" "wget" || deps_missing=1
+    check_item "Unzip" "cmd" "unzip" || deps_missing=1
+    
+    # Check DEX2C components
+    check_item "DEX2C" "dir" "$HOME/dex2c" || deps_missing=1
+    check_item "NDK" "dir" "$HOME/ndk" || deps_missing=1
+    
+    if [ $deps_missing -eq 0 ]; then
+        dialog --title "Dependency Check" --msgbox "${check_result}\nAll dependencies are satisfied." 12 50
+    else
+        dialog --title "Dependency Check" --yesno "${check_result}\n\nMissing dependencies found. Install now?" 12 50 && install_dex2c
+    fi
 }
 
 # ====[ Remove DEX2C ]=====
 remove_dex2c() {
-    echo -e "\e[1;33m[+] Removing DEX2C and related tools...\e[0m"
+    # List of packages to remove (customize as needed)
+    PKG_LIST="openjdk-17 make cmake git wget unzip"
     
-    # Array of directories to remove
-    dirs_to_remove=(
-        "$HOME/dex2c"
-        "$HOME/android-sdk"
-        "$HOME/androidide-tools"
-        "$HOME/android-ndk-r26b"
-        "$HOME/ndk"
-    )
-    
-    # Remove each directory if it exists
-    removed_any=false
-    for dir in "${dirs_to_remove[@]}"; do
-        if [ -d "$dir" ]; then
-            echo -e "\e[1;32m[+] Removing $dir\e[0m"
-            rm -rf "$dir"
-            removed_any=true
-        fi
-    done
-    
-    if [ "$removed_any" = true ]; then
-        echo -e "\e[1;32m[✓] Removal complete\e[0m"
-    else
-        echo -e "\e[1;31m[!] No DEX2C related directories found\e[0m"
-    fi
-    
-    sleep 2
-}
+    dialog --yesno "WARNING: This will remove:\n\n- DEX2C files (~/dex2c)\n- NDK files (~/ndk)\n- Packages: $PKG_LIST\n\nContinue?" 13 50 || return
 
+    (
+        echo "10"
+        echo "# Removing DEX2C files..."
+        rm -rf "$HOME/dex2c"
+        
+        echo "25" 
+        echo "# Removing NDK files..."
+        rm -rf "$HOME/ndk"
+        
+        echo "40"
+        echo "# Removing packages..."
+        for pkg in $PKG_LIST; do
+            if dpkg -s "$pkg" >/dev/null 2>&1; then
+                apt-get remove -y --purge "$pkg" >/dev/null 2>&1
+            fi
+        done
+        
+        echo "70"
+        echo "# Cleaning up dependencies..."
+        apt-get autoremove -y >/dev/null 2>&1
+        apt-get clean >/dev/null 2>&1
+        
+        echo "85"
+        echo "# Updating environment..."
+        sed -i '/export NDK=\$HOME\/ndk/d' "$HOME/.bashrc"
+        sed -i '/export PATH=\$NDK:\$PATH/d' "$HOME/.bashrc"
+        
+        echo "100"
+        echo "# Uninstall complete!"
+        sleep 1
+    ) | dialog --title "DEX2C Removal" --gauge "Uninstalling..." 10 70 0
+
+    dialog --msgbox "DEX2C and all related components were successfully removed." 7 50
+}
 # ====[ Backup & Wipe Submenu ]=====
 backup_wipe_menu() {
     while true; do
@@ -729,7 +863,6 @@ backup_wipe_menu() {
         esac
     done
 }
-
 # =========[ Start Script ]=========
-check_termux_storage  # Ensure storage permissions
-main_menu             # Launch the main menu
+check_termux_storage
+main_menu
