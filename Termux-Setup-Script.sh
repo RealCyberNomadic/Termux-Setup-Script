@@ -73,6 +73,7 @@ EOF
     esac
   done
 }
+
 # =====[ Radare2 Suite ]=====
 radare2_suite() {
   while true; do
@@ -174,11 +175,7 @@ radare2_suite() {
         ;;
       4)
         echo -e "${BLUE}[+] Installing Radare2...${RESET}"
-        pkg install -y build-essential binutils git
-        git clone https://github.com/radareorg/radare2 "$HOME/radare2"
-        cd "$HOME/radare2" && sh sys/install.sh
-        r2pm update && r2pm -ci r2ghidra
-        pip install r2pipe
+pkg update -y && pkg upgrade -y && pkg install -y git clang make binutils curl python && git clone https://github.com/radareorg/radare2 "$HOME/radare2" && cd "$HOME/radare2" && ./sys/install.sh && source ~/.bashrc && r2pm init && r2pm update && r2pm -ci r2ghidra && pip install --upgrade pip && pip install r2pipe
         echo -e "${GREEN}[✔] Radare2 installed successfully!${RESET}"
         sleep 5
         ;;
@@ -206,6 +203,7 @@ radare2_suite() {
     esac
   done
 }
+
 # =====[ Blutter Suite ]=====
 blutter_suite() {
   # Define color codes
@@ -466,6 +464,7 @@ blutter_suite() {
     esac
   done
 }
+
 # =========[ Refresh Function ]=========
 refresh_script() {
     echo -e "\e[1;32m[+] Refreshing script...\e[0m"
