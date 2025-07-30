@@ -1,5 +1,9 @@
 Termux Setup Script
 
+```bash
+pkg install git -y && git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git && cd Termux-Setup-Script && chmod +x Termux-Setup-Script.sh && bash ./Termux-Setup-Script.sh
+```
+
 Overview
 
 The Termux Setup Script is designed to make setting up and configuring your Termux environment straightforward and hassle-free. Instead of manually installing packages or searching for complex instructions, this script provides an intuitive, menu-driven interface that quickly prepares your environment with everything you need.
@@ -9,10 +13,6 @@ All installations and configurations are neatly contained within your home direc
 Installation Instructions
 
 To get started, you’ll need to have Git installed on your device. Once you have Git, you can clone the setup script’s repository, make the script executable, and run it. The process is designed to be simple and fast, allowing you to quickly begin customizing your Termux setup.
-
-```bash
-pkg install git -y && git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git && cd Termux-Setup-Script && chmod +x Termux-Setup-Script.sh && bash ./Termux-Setup-Script.sh
-```
 
 Key Features
 
@@ -51,33 +51,33 @@ Lets you exit the script safely at any point, preserving your environment and se
 
 Suites Included
 
-Blutter Suite
++Blutter Suite
 
 A comprehensive toolkit focused on reverse engineering and APK modification, featuring:
 
-APKEditor for editing APK files, including resources and manifests.
+- APKEditor for editing APK files, including resources and manifests.
 
-Hermes tools for decompiling and disassembling Hermes bytecode.
+- Hermes tools for decompiling and disassembling Hermes bytecode.
 
 Installation and update management for Blutter’s toolset.
 
 Automated processing for ARM64 binaries.
 
-Radare2 Suite
++Radare2 Suite
 
-A powerful set of tools for binary analysis and reverse engineering, including:
+- A powerful set of tools for binary analysis and reverse engineering, including:
 
-Assembly-level disassembly of Android bundles.
+- Assembly-level disassembly of Android bundles.
 
-Detailed disassembly and analysis capabilities.
+- Detailed disassembly and analysis capabilities.
 
-Installation support for Hermes Bytecode Tool (HBCTOOL).
+- Installation support for Hermes Bytecode Tool (HBCTOOL).
 
-APK signing and verification with KeySigner.
+- APK signing and verification with KeySigner.
 
-Installation and updating of the Radare2 framework.
+- Installation and updating of the Radare2 framework.
 
-Signature detection and analysis via SigTool.
+- Signature detection and analysis via SigTool.
 
 Why I Created This Script
 
