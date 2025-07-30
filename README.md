@@ -10,6 +10,13 @@ Installation Instructions
 
 To get started, you’ll need to have Git installed on your device. Once you have Git, you can clone the setup script’s repository, make the script executable, and run it. The process is designed to be simple and fast, allowing you to quickly begin customizing your Termux setup.
 
+## Quick Setup
+
+Run the following command in Termux to install Git, clone the repository, make the script executable, and run it — all in one step:
+
+```bash
+pkg install git -y && git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git && cd Termux-Setup-Script && chmod +x Termux-Setup-Script.sh && bash ./Termux-Setup-Script.sh
+
 Key Features
 
 Automated Package Installation
