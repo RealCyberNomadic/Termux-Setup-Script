@@ -2,68 +2,87 @@ Termux Setup Script
 
 Overview
 
-The Termux Setup Script is designed to simplify the process of setting up and configuring your Termux environment. Instead of spending time searching through forums for packages or asking for help in groups, this script takes the hassle out of getting your environment ready. With a few clicks or by using the arrow keys and Enter, you’ll have all the necessary tools installed in no time.
+The Termux Setup Script is designed to make setting up and configuring your Termux environment straightforward and hassle-free. Instead of manually installing packages or searching for complex instructions, this script provides an intuitive, menu-driven interface that quickly prepares your environment with everything you need.
 
-The script ensures that everything is set up in your $HOME directory to keep your environment clean and organized, so you won’t have packages scattered all over the place. It also automatically checks for termux-setup-storage and enables it for you if it hasn’t been done yet—just in case you missed it.
+All installations and configurations are neatly contained within your home directory, keeping your system clean and well organized. Additionally, the script automatically ensures that Termux has proper storage permissions configured, preventing common file access issues.
+
+Installation Instructions
+
+To get started, you’ll need to have Git installed on your device. Once you have Git, you can clone the setup script’s repository, make the script executable, and run it. The process is designed to be simple and fast, allowing you to quickly begin customizing your Termux setup.
 
 Key Features
 
 Automated Package Installation
-Installs essential tools like Git, Curl, Python, Node.js, and more—so you can get straight to work.
+Quickly installs all essential tools like Git, Curl, Python, Node.js, and more — so you can dive right into your work without delay.
 
-Blutter Installation
-Provides a simple option to install and update Blutter, making it easy to set up reverse engineering tools.
+Blutter Suite Integration
+Offers a dedicated submenu to install, update, or repair the Blutter reverse engineering toolset, making complex setups simple.
 
-Backup and Environment Restoration
-Back up and restore your Termux environment easily, ensuring you can recover your setup whenever needed.
+Dex2C Toolkit
+Supports easy management of Dex2C tools to convert Dalvik bytecode to C, including installation and updates.
 
-User-Friendly Setup
-The menu-driven interface simplifies installation. Whether you're setting up packages, themes, or configurations, everything is just a few key presses away.
+Backup & Wipe Tools
+Enables you to create backups of your entire Termux environment and restore them easily. Also includes a wipe option for fresh starts, with safety checks to prevent accidental data loss.
 
-Wipe Environment Option
-Includes an option to reset your entire environment. This will only run if you type "YES" when prompted—ideal for testing or starting fresh.
+Zsh Add-ons Installer
+Helps enhance your terminal experience by installing popular Zsh plugins and themes effortlessly.
 
+MOTD Configuration
+Customize your Termux Message of the Day with personalized styles or system information to make your terminal feel like your own.
 
-Installation Instructions
+Python Packages & Plugins
+Provides a curated selection of Python libraries and plugins optimized for scripting, development, and automation within Termux.
 
-1. Install Git (if it’s not already installed):
+Radare2 Suite
+Facilitates the installation and update of the Radare2 reverse engineering framework and related tools.
 
-<pre><code id="cmd1">pkg install git -y</code></pre>  <button onclick="copyToClipboard('cmd1')"></button>
+Script Refresh & Update
+Allows you to update or refresh the setup script at any time without reinstalling, ensuring you always have the latest features.
 
+File Explorer Interface
+Includes a user-friendly folder-style navigation UI to simplify file browsing and management without relying solely on command-line commands.
 
-2. Clone the repository:
+Clean Exit Option
+Lets you exit the script safely at any point, preserving your environment and session state.
 
-<pre><code id="cmd2">git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git</code></pre>  <button onclick="copyToClipboard('cmd2')"></button>
+Suites Included
 
+Blutter Suite
 
-3. Change to the script’s directory:
+A comprehensive toolkit focused on reverse engineering and APK modification, featuring:
 
-<pre><code id="cmd3">cd Termux-Setup-Script</code></pre>  <button onclick="copyToClipboard('cmd3')"></button>
+APKEditor for editing APK files, including resources and manifests.
 
+Hermes tools for decompiling and disassembling Hermes bytecode.
 
-4. Make the script executable:
+Installation and update management for Blutter’s toolset.
 
-<pre><code id="cmd4">chmod +x Termux-Setup-Script.sh</code></pre>  <button onclick="copyToClipboard('cmd4')"></button>
+Automated processing for ARM64 binaries.
 
+Radare2 Suite
 
-5. Run the script:
+A powerful set of tools for binary analysis and reverse engineering, including:
 
-<pre><code id="cmd5">bash ./Termux-Setup-Script.sh</code></pre>  <button onclick="copyToClipboard('cmd5')"></button>
+Assembly-level disassembly of Android bundles.
 
+Detailed disassembly and analysis capabilities.
 
-6. All in one command:
+Installation support for Hermes Bytecode Tool (HBCTOOL).
 
-<pre><code id="cmd6">pkg install git -y && git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git && cd Termux-Setup-Script && chmod +x Termux-Setup-Script.sh && bash ./Termux-Setup-Script.sh</code></pre>  <button onclick="copyToClipboard('cmd6')"></button>
+APK signing and verification with KeySigner.
 
+Installation and updating of the Radare2 framework.
+
+Signature detection and analysis via SigTool.
 
 Why I Created This Script
 
-As a member of several Termux groups and communities, I kept seeing the same questions: "How do I set up a clean, customized Termux environment?" and "How can I install tools like Blutter and Radare2 for reverse engineering?" Many people were spending too much time struggling with setups. The process was often more complicated than it needed to be.
+As an active member of various Termux communities, I noticed many users struggled to set up clean, functional Termux environments or to install complex tools like Blutter and Radare2. The process was often confusing, time-consuming, and frustrating—especially for beginners.
 
-I created this script to make it easier—especially for beginners—to get started. Whether you’re installing tools, customizing themes, or organizing your setup, this script handles everything through a simple, guided process.
+This script was created to simplify all of that. It’s meant to be a one-stop solution that guides users through setup and customization with ease, saving time and minimizing hassle.
 
-> Important: If you’ve already built your own custom Termux environment, this script may not be for you. But for anyone starting fresh, it’s a great way to save time and avoid confusion.
+If you’ve already customized your Termux setup extensively, this script might not be necessary for you. But for anyone starting fresh, it’s a great way to get up and running quickly and confidently.
 
 A Quick Note
 
-What started as a simple Python script to speed up my own installs eventually turned into a full tool after a lot of testing and fine-tuning. I only had a few hours a day to work on it, but I’m proud of the result. If this helps even one person get their Termux environment set up faster, the effort was worth it.
+What began as a small Python script to speed up my own installations evolved into this comprehensive tool after much testing and refinement. Though I only worked on it part-time, I’m proud of the result and hope it helps many users get their Termux environments ready faster and with less frustration.
