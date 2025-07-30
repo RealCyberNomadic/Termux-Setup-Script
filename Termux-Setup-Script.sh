@@ -2,7 +2,7 @@
 
 # Script Configuration
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
-SCRIPT_VERSION="1.1.2"
+SCRIPT_VERSION="1.1.3"
 
 # ====[ Utility Functions ]====
 check_termux_storage() {
@@ -23,7 +23,7 @@ choice=$(dialog --colors --title " \Z1MOTD Customization\Z0" \
 2 "Color Presets" \
 3 "Change Text Color" \
 4 "Restore Default MOTD" \
-5 "Return to Main Menu" 3>&1 1>&2 2>&3)
+5 "Return to MainMenu" 3>&1 1>&2 2>&3)
 
 case $choice in  
   1)  
@@ -752,7 +752,7 @@ install_zsh_addons() {
     sleep 2
 }
 
-# =========[ Main Menu ]=========
+# =========[ MainMenu ]=========
 main_menu() {
     # Check if we're coming from a refresh
     if [ "$1" == "--refreshed" ]; then
@@ -763,32 +763,43 @@ main_menu() {
 
     while true; do
         main_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
-            --title "Main Menu" \
-            --menu "Choose an option:" 22 60 13 \
-            0 "Backup & Wipe Tools" \
+            --title "MainMenu" \
+            --menu "Choose an option:" 22 60 10 \
+            0 "File Manager" \
             1 "Blutter Suite" \
-            2 "Dex2c Tools" \
-            3 "Exit Script" \
-            4 "Install Zsh Add-ons" \
+            2 "Radare2 Suite" \
+            3 "Dex2c Suite" \
+            4 "Backup Tools" \
             5 "MOTD Settings" \
-            6 "Python Packages + Plugins" \
-            7 "Radare2 Suite" \
-            8 "Refresh Script" \
-            9 "Update Script" \
-            10 "File Explorer" 3>&1 1>&2 2>&3)
+            6 "Install Zsh Add-ons" \
+            7 "Python Packages + Plugins" \
+            8 "Refresh/Update Script" \
+            9 "Exit" 3>&1 1>&2 2>&3)
 
         clear
         case "$main_choice" in
-            0) backup_wipe_menu ;;
-            1) blutter_suite ;;
-            2) dex2c_menu ;;
-            3)
-                echo "Exiting..."
-                exit 0
+            0) 
+                file_explorer
                 ;;
-            4) install_zsh_addons ;;
-            5) motd_prompt ;;
-            6)
+            1) 
+                blutter_suite 
+                ;;
+            2) 
+                radare2_suite 
+                ;;
+            3) 
+                dex2c_menu 
+                ;;
+            4) 
+                backup_wipe_menu 
+                ;;
+            5) 
+                motd_prompt 
+                ;;
+            6) 
+                install_zsh_addons 
+                ;;
+            7)
                 echo -e "\e[1;33m[+] Installing packages...\e[0m"
                 yes | pkg update -y && yes | pkg upgrade -y
                 yes | pkg install -y git curl wget nano vim ruby php nodejs golang clang \
@@ -798,9 +809,8 @@ main_menu() {
                 echo -e "\e[1;32m[✓] Installation complete!\e[0m"
                 sleep 2
                 ;;
-            7) radare2_suite ;;
-            8) refresh_script ;;
-            9) 
+            8)
+                # Combined Refresh and Update functionality
                 echo -e "\e[1;33m[*] Checking for script updates...\e[0m"
                 remote_version=$(curl -s "$SCRIPT_URL" | grep -m1 "SCRIPT_VERSION=" | cut -d'"' -f2)
                 
@@ -811,19 +821,21 @@ main_menu() {
                         mv "$0.tmp" "$0"
                         echo -e "\e[1;32m[✓] Update complete. Restarting script...\e[0m"
                         sleep 2
-                        exec "$0" "$@"
+                        exec "$0" "--refreshed"
                     else
-                        echo -e "\e[1;31m[!] Update failed, continuing with current version.\e[0m"
+                        echo -e "\e[1;31m[!] Update failed, refreshing current version...\e[0m"
                         sleep 2
+                        exec "$0" "--refreshed"
                     fi
                 else
-                    echo -e "\e[1;32m[✓] Already up to date.\e[0m"
+                    echo -e "\e[1;32m[✓] Already up to date. Refreshing...\e[0m"
                     sleep 2
+                    exec "$0" "--refreshed"
                 fi
                 ;;
-            10) 
-                file_explorer
-                # No need to refresh unless changes were made
+            9)
+                echo "Exiting..."
+                exit 0
                 ;;
             *) echo "Invalid option" ;;
         esac
@@ -956,7 +968,7 @@ dex2c_menu() {
             1 "Check Dependencies" \
             2 "Install Dex2c" \
             3 "Remove Dex2c" \
-            4 "Return to Main Menu" 3>&1 1>&2 2>&3)
+            4 "Return to MainMenu" 3>&1 1>&2 2>&3)
 
         clear
         case "$dex_choice" in
@@ -1229,12 +1241,12 @@ remove_dex2c() {
 backup_wipe_menu() {
     while true; do
         sub_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
-            --title "Backup & Wipe Tools" \
+            --title "Backup Tools" \
             --menu "Choose an option:" 15 50 4 \
-            1 "Backup Termux Environment" \
-            2 "Restore Termux Environment" \
+            1 "Backup Environment" \
+            2 "Restore Environment" \
             3 "Wipe All Packages (Caution!)" \
-            4 "Return to Main Menu" 3>&1 1>&2 2>&3)
+            4 "Return to MainMenu" 3>&1 1>&2 2>&3)
 
         clear
         case "$sub_choice" in
