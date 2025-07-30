@@ -17,6 +17,12 @@ Run the following command in Termux to install Git, clone the repository, make t
 ```bash
 pkg install git -y && git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git && cd Termux-Setup-Script && chmod +x Termux-Setup-Script.sh && bash ./Termux-Setup-Script.sh
 
+On GitHub, this will render as a syntax-highlighted code block with a convenient **copy** button in the top right corner for users to copy the entire command to their clipboard with one click.
+
+---
+
+If you want me to integrate this snippet into the full README text you have, just say the word!
+
 Key Features
 
 Automated Package Installation
