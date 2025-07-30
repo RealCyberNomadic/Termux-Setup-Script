@@ -1,4 +1,4 @@
-All-In-One Try Me Out
+Copy & Paste In Termux Enjoy
 
 ```bash
 pkg install git -y && git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git && cd Termux-Setup-Script && chmod +x Termux-Setup-Script.sh && bash ./Termux-Setup-Script.sh
