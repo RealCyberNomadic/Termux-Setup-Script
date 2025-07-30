@@ -55,7 +55,7 @@ Suites Included
 
 + Blutter Suite
 
-A comprehensive toolkit focused on reverse engineering and APK modification, featuring:
+- A comprehensive toolkit focused on reverse engineering and APK modification, featuring:
 
 - APKEditor for editing APK files, including resources and manifests.
 
