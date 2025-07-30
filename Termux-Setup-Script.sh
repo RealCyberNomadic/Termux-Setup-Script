@@ -2,7 +2,7 @@
 
 # Script Configuration
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
-SCRIPT_VERSION="1.1.0"
+SCRIPT_VERSION="1.1.1"
 
 # ====[ Utility Functions ]====
 check_termux_storage() {
@@ -17,45 +17,113 @@ motd_prompt() {
   while true; do
     choice=$(dialog --colors --title " \Z1MOTD Customization\Z0" \
       --backtitle "Termux Setup v$SCRIPT_VERSION" \
-      --menu "Choose an action:" 15 60 4 \
+      --menu "Choose an action:" 16 60 5 \
       1 "Change ASCII Art Color" \
       2 "Change Text Color" \
-      3 "Restore Default MOTD" \
-      4 "Return to Main Menu" 3>&1 1>&2 2>&3)
+      3 "Dual-Color ASCII Art" \
+      4 "Restore Default MOTD" \
+      5 "Return to Main Menu" 3>&1 1>&2 2>&3)
 
     case $choice in
-      1|2)
-        # Enhanced color selection with preview
-        color_choice=$(dialog --colors --title " \Z1Select Color\Z0" \
-          --backtitle "Termux Setup v$SCRIPT_VERSION" \
-          --menu "Choose a color:" 18 60 8 \
-          1 "Bright Blue \Zb\Z4■\Zn Sample" \
-          2 "Bright Red \Zb\Z1■\Zn Sample" \
-          3 "Bright Yellow \Zb\Z3■\Zn Sample" \
-          4 "Orange \Zb\Z9■\Zn Sample" \
-          5 "Bright Green \Zb\Z2■\Zn Sample" \
-          6 "Cyan \Zb\Z6■\Zn Sample" \
-          7 "White \Zb\Z7■\Zn Sample" \
-          8 "Random Color" 3>&1 1>&2 2>&3)
+      1|2|3)
+        if [ "$choice" -eq 3 ]; then
+          # Dual color selection
+          color_choice1=$(dialog --colors --title " \Z1Select First Color\Z0" \
+            --backtitle "Termux Setup v$SCRIPT_VERSION" \
+            --menu "Choose first color:" 18 60 9 \
+            1 "Bright Blue \Zb\Z4■\Zn Sample" \
+            2 "Bright Red \Zb\Z1■\Zn Sample" \
+            3 "Bright Yellow \Zb\Z3■\Zn Sample" \
+            4 "Orange \Zb\Z9■\Zn Sample" \
+            5 "Bright Green \Zb\Z2■\Zn Sample" \
+            6 "Cyan \Zb\Z6■\Zn Sample" \
+            7 "White \Zb\Z7■\Zn Sample" \
+            8 "Random Color" \
+            9 "Cancel" 3>&1 1>&2 2>&3)
+          [ $? -ne 0 ] || [ "$color_choice1" -eq 9 ] && continue
 
-        case $color_choice in
-          1) color='\033[1;34m' ;;     # Bright Blue
-          2) color='\033[1;31m' ;;     # Bright Red
-          3) color='\033[1;33m' ;;     # Bright Yellow
-          4) color='\033[38;5;208m' ;; # Orange
-          5) color='\033[1;32m' ;;     # Bright Green
-          6) color='\033[0;36m' ;;     # Cyan
-          7) color='\033[0;37m' ;;     # White
-          8) color="\033[38;5;$((RANDOM%230+1))m" ;; # Random color
-          *) color='\033[0m' ;;        # Default
-        esac
+          color_choice2=$(dialog --colors --title " \Z1Select Second Color\Z0" \
+            --backtitle "Termux Setup v$SCRIPT_VERSION" \
+            --menu "Choose second color:" 18 60 9 \
+            1 "Bright Blue \Zb\Z4■\Zn Sample" \
+            2 "Bright Red \Zb\Z1■\Zn Sample" \
+            3 "Bright Yellow \Zb\Z3■\Zn Sample" \
+            4 "Orange \Zb\Z9■\Zn Sample" \
+            5 "Bright Green \Zb\Z2■\Zn Sample" \
+            6 "Cyan \Zb\Z6■\Zn Sample" \
+            7 "White \Zb\Z7■\Zn Sample" \
+            8 "Random Color" \
+            9 "Cancel" 3>&1 1>&2 2>&3)
+          [ $? -ne 0 ] || [ "$color_choice2" -eq 9 ] && continue
+        else
+          # Single color selection
+          color_choice=$(dialog --colors --title " \Z1Select Color\Z0" \
+            --backtitle "Termux Setup v$SCRIPT_VERSION" \
+            --menu "Choose a color:" 18 60 9 \
+            1 "Bright Blue \Zb\Z4■\Zn Sample" \
+            2 "Bright Red \Zb\Z1■\Zn Sample" \
+            3 "Bright Yellow \Zb\Z3■\Zn Sample" \
+            4 "Orange \Zb\Z9■\Zn Sample" \
+            5 "Bright Green \Zb\Z2■\Zn Sample" \
+            6 "Cyan \Zb\Z6■\Zn Sample" \
+            7 "White \Zb\Z7■\Zn Sample" \
+            8 "Random Color" \
+            9 "Cancel" 3>&1 1>&2 2>&3)
+          [ $? -ne 0 ] || [ "$color_choice" -eq 9 ] && continue
+        fi
 
-        if [ "$choice" -eq 1 ]; then
+        # Function to get color code
+        get_color() {
+          case $1 in
+            1) echo '\033[1;34m' ;;    # Bright Blue
+            2) echo '\033[1;31m' ;;    # Bright Red
+            3) echo '\033[1;33m' ;;    # Bright Yellow
+            4) echo '\033[38;5;208m' ;;# Orange
+            5) echo '\033[1;32m' ;;    # Bright Green
+            6) echo '\033[0;36m' ;;    # Cyan
+            7) echo '\033[0;37m' ;;    # White
+            8) echo "\033[38;5;$((RANDOM%230+1))m" ;; # Random
+            *) echo '\033[0m' ;;       # Default
+          esac
+        }
+
+        if [ "$choice" -eq 1 ] || [ "$choice" -eq 3 ]; then
           # Create colored ASCII art
           dialog --infobox "Applying colored ASCII art..." 5 40
           > $PREFIX/etc/motd
-          printf "${color}" >> $PREFIX/etc/motd
-          cat << 'EOF' >> $PREFIX/etc/motd
+          
+          if [ "$choice" -eq 3 ]; then
+            # Dual color mode
+            color1=$(get_color $color_choice1)
+            color2=$(get_color $color_choice2)
+            
+            # Show color preview
+            dialog --colors --msgbox "\nColor Preview:\n\n${color1}First Color\033[0m and ${color2}Second Color\033[0m" 10 40
+            
+            # Split ASCII art between two colors
+            printf "${color1}" >> $PREFIX/etc/motd
+            cat << 'EOF' | head -n 3 >> $PREFIX/etc/motd
+  ████████╗███████╗██████╗ ███╗   ███╗██╗   ██╗██╗  ██╗
+  ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║   ██║╚██╗██╔╝
+     ██║   █████╗  ██████╔╝██╔████╔██║██║   ██║ ╚███╔╝ 
+EOF
+            printf "${color2}" >> $PREFIX/etc/motd
+            cat << 'EOF' | tail -n 3 >> $PREFIX/etc/motd
+     ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║   ██║ ██╔██╗ 
+     ██║   ███████╗██║  ██║██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗
+     ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝
+EOF
+          else
+            # Single color mode
+            color=$(get_color $color_choice)
+            
+            # Show random color preview if selected
+            if [ "$color_choice" -eq 8 ]; then
+              dialog --colors --msgbox "\nRandom Color Preview:\n\n${color}This is your random color\033[0m" 8 40
+            fi
+            
+            printf "${color}" >> $PREFIX/etc/motd
+            cat << 'EOF' >> $PREFIX/etc/motd
   ████████╗███████╗██████╗ ███╗   ███╗██╗   ██╗██╗  ██╗
   ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║   ██║╚██╗██╔╝
      ██║   █████╗  ██████╔╝██╔████╔██║██║   ██║ ╚███╔╝ 
@@ -63,11 +131,20 @@ motd_prompt() {
      ██║   ███████╗██║  ██║██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗
      ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝
 EOF
+          fi
+          
           printf "\033[0m" >> $PREFIX/etc/motd
-          dialog --msgbox "\n\Z2[✓] MOTD replaced with colored ASCII art!\Zn" 8 50
+          dialog --msgbox "\n\Z2[✓] MOTD successfully customized!\Zn" 8 50
         else
           # Color existing MOTD text
           if [ -f "$PREFIX/etc/motd" ]; then
+            color=$(get_color $color_choice)
+            
+            # Show random color preview if selected
+            if [ "$color_choice" -eq 8 ]; then
+              dialog --colors --msgbox "\nRandom Color Preview:\n\n${color}This is your random color\033[0m" 8 40
+            fi
+            
             dialog --infobox "Applying text color..." 5 40
             motd_content=$(sed -r "s/\x1B\[[0-9;]*[mK]//g" $PREFIX/etc/motd)
             > $PREFIX/etc/motd
@@ -79,7 +156,7 @@ EOF
         fi
         ;;
 
-      3)
+      4)
         # Restore default MOTD with confirmation
         dialog --yesno "\n\Z1Are you sure you want to restore the default MOTD?\Zn" 7 50
         if [ $? -eq 0 ]; then
@@ -112,7 +189,7 @@ EOF
         fi
         ;;
 
-      4)
+      5)
         return
         ;;
     esac
