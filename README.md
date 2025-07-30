@@ -53,7 +53,7 @@ Lets you exit the script safely at any point, preserving your environment and se
 
 Suites Included
 
-+ Blutter Suite
+Blutter Suite
 
 - A comprehensive toolkit focused on reverse engineering and APK modification, featuring:
 
@@ -65,7 +65,7 @@ Suites Included
 
 - Automated processing for ARM64 binaries.
 
-+ Radare2 Suite
+Radare2 Suite
 
 - A powerful set of tools for binary analysis and reverse engineering, including:
 
