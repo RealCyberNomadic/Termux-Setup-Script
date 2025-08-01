@@ -2,7 +2,7 @@
 
 # Script Configuration
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
-SCRIPT_VERSION="1.1.3"
+SCRIPT_VERSION="1.1.4"
 
 # ====[ Utility Functions ]====
 check_termux_storage() {
@@ -10,6 +10,40 @@ check_termux_storage() {
     echo -e "\033[1;33m[!] Setting up Termux storage...\033[0m"
     termux-setup-storage
   fi
+}
+
+# ==== [ Shortcut Key "P3" ] ====
+add_p3_alias() {
+    local alias_line="alias p3='bash \$HOME/Termux-Setup-Script/Termux-Setup-Script.sh'"
+    local shell_rc=""
+
+    # Detect shell rc file
+    case "$SHELL" in
+        */zsh) shell_rc="$HOME/.zshrc" ;;
+        */bash) shell_rc="$HOME/.bashrc" ;;
+        *)
+            if [ -f "$HOME/.bashrc" ]; then
+                shell_rc="$HOME/.bashrc"
+            elif [ -f "$HOME/.zshrc" ]; then
+                shell_rc="$HOME/.zshrc"
+            else
+                shell_rc="$HOME/.bashrc"
+            fi
+            ;;
+    esac
+
+    # Ensure file exists
+    touch "$shell_rc"
+
+    # Only add alias if not already there
+    if ! grep -Fxq "$alias_line" "$shell_rc"; then
+        echo "$alias_line" >> "$shell_rc"
+        alias p3="bash $HOME/Termux-Setup-Script/Termux-Setup-Script.sh"
+        dialog --title "Shortcut Key Added" \
+               --msgbox 'You can now launch the script using:\n\n  p3' 10 40
+    else
+        alias p3="bash $HOME/Termux-Setup-Script/Termux-Setup-Script.sh"
+    fi
 }
 
 ====[ MOTD Customization ]====
@@ -1306,4 +1340,5 @@ backup_wipe_menu() {
 
 # =========[ Start Script ]=========
 check_termux_storage
+add_p3_alias
 main_menu
