@@ -12,9 +12,15 @@ check_termux_storage() {
   fi
 }
 
-# ==== [ Shortcut Key "P3" ] ====
-add_p3_alias() {
-    local alias_line="alias p3='bash \$HOME/Termux-Setup-Script/Termux-Setup-Script.sh'"
+# ==== [ Shortcut Key "" ] ====
+add_alias() {
+    local alias_lines=(
+        "alias eq='yes | history -c && exit'"
+        "alias tts='bash \$HOME/Termux-Setup-Script/Termux-Setup-Script.sh'"
+        "alias pp='cd /storage/emulated/0/Shite && python patch.py'"
+        "alias r2d='cd /storage/emulated/0/Shite/ && r2 -e bin.relocs.apply=true -w libPlagueIncAndroidNative.so'"
+        "alias z='cd /storage/emulated/0/Shite/'"
+    )
     local shell_rc=""
 
     # Detect shell rc file
@@ -35,14 +41,24 @@ add_p3_alias() {
     # Ensure file exists
     touch "$shell_rc"
 
-    # Only add alias if not already there
-    if ! grep -Fxq "$alias_line" "$shell_rc"; then
-        echo "$alias_line" >> "$shell_rc"
-        alias p3="bash $HOME/Termux-Setup-Script/Termux-Setup-Script.sh"
+    # Add aliases if not already there
+    for alias_line in "${alias_lines[@]}"; do
+        if ! grep -Fxq "$alias_line" "$shell_rc"; then
+            echo "$alias_line" >> "$shell_rc"
+        fi
+    done
+
+    # Set the aliases in current session
+    alias eq='yes | history -c && exit'
+    alias tts='bash $HOME/Termux-Setup-Script/Termux-Setup-Script.sh'
+    alias pp='cd /storage/emulated/0/Shite && python patch.py'
+    alias r2d='cd /storage/emulated/0/Shite/ && r2 -e bin.relocs.apply=true -w libPlagueIncAndroidNative.so'
+    alias z='cd /storage/emulated/0/Shite/'
+
+    # Only show dialog for the main alias
+    if ! grep -Fxq "${alias_lines[0]}" "$shell_rc"; then
         dialog --title "Shortcut Key Added" \
-               --msgbox 'You can now launch the script using:\n\n  p3' 10 40
-    else
-        alias p3="bash $HOME/Termux-Setup-Script/Termux-Setup-Script.sh"
+               --msgbox 'You can now launch the script using:\n\n  ' 10 40
     fi
 }
 
@@ -1340,5 +1356,5 @@ backup_wipe_menu() {
 
 # =========[ Start Script ]=========
 check_termux_storage
-add_p3_alias
+add_alias
 main_menu
