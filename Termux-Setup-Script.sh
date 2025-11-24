@@ -2,7 +2,7 @@
 
 # Script Configuration
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
-SCRIPT_VERSION="1.1.5"
+SCRIPT_VERSION="1.2.5"
 
 # ====[ Utility Functions ]====
 check_termux_storage() {
@@ -12,15 +12,10 @@ check_termux_storage() {
   fi
 }
 
-# ==== [ Shortcut Key "" ] ====
+# ==== [ Shortcut Alias ] ====
 add_alias() {
-    local alias_lines=(
-        "alias eq='yes | history -c && exit'"
-        "alias tts='bash \$HOME/Termux-Setup-Script/Termux-Setup-Script.sh'"
-        "alias pp='cd /storage/emulated/0/Shite && python patch.py'"
-        "alias r2d='cd /storage/emulated/0/Shite/ && r2 -e bin.relocs.apply=true -w libPlagueIncAndroidNative.so'"
-        "alias z='cd /storage/emulated/0/Shite/'"
-    )
+    local alias_line_lower="alias tts='bash \$HOME/Termux-Setup-Script/Termux-Setup-Script.sh'"
+    local alias_line_upper="alias TTS='bash \$HOME/Termux-Setup-Script/Termux-Setup-Script.sh'"
     local shell_rc=""
 
     # Detect shell rc file
@@ -38,27 +33,27 @@ add_alias() {
             ;;
     esac
 
-    # Ensure file exists
+    # Ensure RC file exists
     touch "$shell_rc"
 
-    # Add aliases if not already there
-    for alias_line in "${alias_lines[@]}"; do
-        if ! grep -Fxq "$alias_line" "$shell_rc"; then
-            echo "$alias_line" >> "$shell_rc"
-        fi
-    done
+    # Add lowercase alias ONLY if not present
+    if ! grep -Fxq "$alias_line_lower" "$shell_rc"; then
+        printf "\n%s\n" "$alias_line_lower" >> "$shell_rc"
+    fi
 
-    # Set the aliases in current session
-    alias eq='yes | history -c && exit'
+    # Add uppercase alias ONLY if not present
+    if ! grep -Fxq "$alias_line_upper" "$shell_rc"; then
+        printf "\n%s\n" "$alias_line_upper" >> "$shell_rc"
+    fi
+
+    # Set aliases for current session (no duplicate writing here)
     alias tts='bash $HOME/Termux-Setup-Script/Termux-Setup-Script.sh'
-    alias pp='cd /storage/emulated/0/Shite && python patch.py'
-    alias r2d='cd /storage/emulated/0/Shite/ && r2 -e bin.relocs.apply=true -w libPlagueIncAndroidNative.so'
-    alias z='cd /storage/emulated/0/Shite/'
+    alias TTS='bash $HOME/Termux-Setup-Script/Termux-Setup-Script.sh'
 
-    # Only show dialog for the main alias
-    if ! grep -Fxq "${alias_lines[0]}" "$shell_rc"; then
-        dialog --title "Shortcut Key Added" \
-               --msgbox 'You can now launch the script using:\n\n  ' 10 40
+    # Optional dialog
+    if command -v dialog >/dev/null 2>&1; then
+        dialog --title "Shortcut Added" \
+               --msgbox "You can now use:\n\n  tts\n  TTS" 10 40
     fi
 }
 
@@ -68,157 +63,22 @@ motd_prompt() {
 while true; do
 choice=$(dialog --colors --title " \Z1MOTD Customization\Z0" \
 --backtitle "Termux Setup v$SCRIPT_VERSION" \
---menu "Choose an action:" 16 60 6 \
-1 "Customize ASCII Art Colors" \
-2 "Color Presets" \
-3 "Change Text Color" \
-4 "Restore Default MOTD" \
-5 "Return to MainMenu" 3>&1 1>&2 2>&3)
+--menu "Choose an action:" 16 60 4 \
+1 "Color Presets" \
+2 "Change Text Color" \
+3 "Restore Default MOTD" \
+4 "Return to MainMenu" 3>&1 1>&2 2>&3)
 
 case $choice in  
-  1)  
-    # ASCII Art Color Customization
-    color_mode=$(dialog --colors --title " \Z1ASCII Art Color Mode\Z0" \
-      --backtitle "Termux Setup v$SCRIPT_VERSION" \
-      --menu "Choose coloring style:" 16 60 3 \
-      1 "Single Color" \
-      2 "Dual Color" \
-      3 "Cancel" 3>&1 1>&2 2>&3)
-    [ $? -ne 0 ] || [ "$color_mode" -eq 3 ] && continue
 
-    # Function to get color code  
-    get_color() {  
-      case $1 in  
-        1) echo '\033[1;34m' ;;    # Bright Blue  
-        2) echo '\033[1;31m' ;;    # Bright Red  
-        3) echo '\033[1;33m' ;;    # Bright Yellow  
-        4) echo '\033[38;5;208m' ;;# Orange  
-        5) echo '\033[1;32m' ;;    # Bright Green  
-        6) echo '\033[0;36m' ;;    # Cyan  
-        7) echo '\033[0;37m' ;;    # White  
-        8) echo '\033[0;35m' ;;    # Purple  
-        9) echo '\033[38;5;213m' ;;# Pink  
-        10) echo '\033[38;5;14m' ;;# Teal  
-        11) echo '\033[38;5;8m' ;; # Gray  
-        12) echo "\033[38;5;$((RANDOM%230+1))m" ;; # Random  
-        *) echo '\033[0m' ;;       # Default  
-      esac  
-    }
-
-    if [ "$color_mode" -eq 1 ]; then
-      # Single color selection
-      color_choice=$(dialog --colors --title " \Z1Select Color\Z0" \
-        --backtitle "Termux Setup v$SCRIPT_VERSION" \
-        --menu "Choose a color:" 20 60 12 \
-        1 "Bright Blue \Zb\Z4■\Zn Sample" \
-        2 "Bright Red \Zb\Z1■\Zn Sample" \
-        3 "Bright Yellow \Zb\Z3■\Zn Sample" \
-        4 "Orange \Zb\Z9■\Zn Sample" \
-        5 "Bright Green \Zb\Z2■\Zn Sample" \
-        6 "Cyan \Zb\Z6■\Zn Sample" \
-        7 "White \Zb\Z7■\Zn Sample" \
-        8 "Purple \Zb\Z5■\Zn Sample" \
-        9 "Pink \Zb\Z13■\Zn Sample" \
-        10 "Teal \Zb\Z14■\Zn Sample" \
-        11 "Gray \Zb\Z8■\Zn Sample" \
-        12 "Random Color" \
-        13 "Cancel" 3>&1 1>&2 2>&3)
-      [ $? -ne 0 ] || [ "$color_choice" -eq 13 ] && continue
-
-      color=$(get_color $color_choice)
-      
-      # Show random color preview if selected  
-      if [ "$color_choice" -eq 12 ]; then  
-        dialog --colors --msgbox "\nRandom Color Preview:\n\n${color}This is your random color\033[0m" 8 40  
-      fi
-
-      # Create colored ASCII art
-      dialog --infobox "Applying colored ASCII art..." 5 40
-      > $PREFIX/etc/motd
-      printf "${color}" >> $PREFIX/etc/motd
-      cat << 'EOF' >> $PREFIX/etc/motd
-  ████████╗███████╗██████╗ ███╗   ███╗██╗   ██╗██╗  ██╗
-  ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║   ██║╚██╗██╔╝
-     ██║   █████╗  ██████╔╝██╔████╔██║██║   ██║ ╚███╔╝ 
-     ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║   ██║ ██╔██╗ 
-     ██║   ███████╗██║  ██║██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗
-     ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝
-EOF
-      printf "\033[0m" >> $PREFIX/etc/motd
-
-    elif [ "$color_mode" -eq 2 ]; then
-      # Dual color selection  
-      color_choice1=$(dialog --colors --title " \Z1Select First Color\Z0" \
-        --backtitle "Termux Setup v$SCRIPT_VERSION" \
-        --menu "Choose first color:" 20 60 12 \
-        1 "Bright Blue \Zb\Z4■\Zn Sample" \
-        2 "Bright Red \Zb\Z1■\Zn Sample" \
-        3 "Bright Yellow \Zb\Z3■\Zn Sample" \
-        4 "Orange \Zb\Z9■\Zn Sample" \
-        5 "Bright Green \Zb\Z2■\Zn Sample" \
-        6 "Cyan \Zb\Z6■\Zn Sample" \
-        7 "White \Zb\Z7■\Zn Sample" \
-        8 "Purple \Zb\Z5■\Zn Sample" \
-        9 "Pink \Zb\Z13■\Zn Sample" \
-        10 "Teal \Zb\Z14■\Zn Sample" \
-        11 "Gray \Zb\Z8■\Zn Sample" \
-        12 "Random Color" \
-        13 "Cancel" 3>&1 1>&2 2>&3)  
-      [ $? -ne 0 ] || [ "$color_choice1" -eq 13 ] && continue  
-
-      color_choice2=$(dialog --colors --title " \Z1Select Second Color\Z0" \
-        --backtitle "Termux Setup v$SCRIPT_VERSION" \
-        --menu "Choose second color:" 20 60 12 \
-        1 "Bright Blue \Zb\Z4■\Zn Sample" \
-        2 "Bright Red \Zb\Z1■\Zn Sample" \
-        3 "Bright Yellow \Zb\Z3■\Zn Sample" \
-        4 "Orange \Zb\Z9■\Zn Sample" \
-        5 "Bright Green \Zb\Z2■\Zn Sample" \
-        6 "Cyan \Zb\Z6■\Zn Sample" \
-        7 "White \Zb\Z7■\Zn Sample" \
-        8 "Purple \Zb\Z5■\Zn Sample" \
-        9 "Pink \Zb\Z13■\Zn Sample" \
-        10 "Teal \Zb\Z14■\Zn Sample" \
-        11 "Gray \Zb\Z8■\Zn Sample" \
-        12 "Random Color" \
-        13 "Cancel" 3>&1 1>&2 2>&3)  
-      [ $? -ne 0 ] || [ "$color_choice2" -eq 13 ] && continue
-
-      color1=$(get_color $color_choice1)  
-      color2=$(get_color $color_choice2)  
-        
-      # Show color preview  
-      dialog --colors --msgbox "\nColor Preview:\n\n${color1}First Color\033[0m and ${color2}Second Color\033[0m" 10 40  
-        
-      # Split ASCII art between two colors  
-      dialog --infobox "Applying dual-colored ASCII art..." 5 40
-      > $PREFIX/etc/motd
-      printf "${color1}" >> $PREFIX/etc/motd  
-      cat << 'EOF' | head -n 3 >> $PREFIX/etc/motd
-  ████████╗███████╗██████╗ ███╗   ███╗██╗   ██╗██╗  ██╗
-  ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║   ██║╚██╗██╔╝
-     ██║   █████╗  ██████╔╝██╔████╔██║██║   ██║ ╚███╔╝ 
-EOF
-      printf "${color2}" >> $PREFIX/etc/motd
-      cat << 'EOF' | tail -n 3 >> $PREFIX/etc/motd
-     ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║   ██║ ██╔██╗ 
-     ██║   ███████╗██║  ██║██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗
-     ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝
-EOF
-      printf "\033[0m" >> $PREFIX/etc/motd
-    fi
-
-    dialog --msgbox "\n\Z2[✓] ASCII art successfully customized!\Zn" 8 50
-    ;;
-
-  2)
+  1)
     # Color Presets
     preset_choice=$(dialog --colors --title " \Z1Color Presets\Z0" \
       --backtitle "Termux Setup v$SCRIPT_VERSION" \
       --menu "Choose a color preset:" 20 60 12 \
       1 "Red \Zb\Z1■\Zn & Green \Zb\Z2■\Zn" \
       2 "Green \Zb\Z2■\Zn & Blue \Zb\Z4■\Zn" \
-      3 "Yellow \Zb\Z3■\Zn & Orange \Zb\Z9■\Zn (Gold)" \
+      3 "Yellow \Zb\Z3■\Zn & Orange \Zb\Z9■\Zn" \
       4 "Purple \Zb\Z5■\Zn & Pink \Zb\Z13■\Zn" \
       5 "Cyan \Zb\Z6■\Zn & Orange \Zb\Z9■\Zn" \
       6 "Blue \Zb\Z4■\Zn & Cyan \Zb\Z6■\Zn" \
@@ -252,15 +112,7 @@ EOF
         color2=${colors[$RANDOM % ${#colors[@]}]}
         ;;
     esac
-    
-    # Show color preview
-    if [ "$preset_choice" -eq 11 ]; then
-      dialog --colors --msgbox "\nRainbow Color Preview:\n\n${color1}First Color\033[0m and ${color2}Second Color\033[0m" 10 40
-    else
-      dialog --colors --msgbox "\nColor Preview:\n\n${color1}First Color\033[0m and ${color2}Second Color\033[0m" 10 40
-    fi
-    
-    # Apply the preset
+
     printf "${color1}" >> $PREFIX/etc/motd
     cat << 'EOF' | head -n 3 >> $PREFIX/etc/motd
   ████████╗███████╗██████╗ ███╗   ███╗██╗   ██╗██╗  ██╗
@@ -277,28 +129,27 @@ EOF
     dialog --msgbox "\n\Z2[✓] Color preset applied successfully!\Zn" 8 50
     ;;
 
-  3)  
+  2)  
     # Change Text Color
     if [ -f "$PREFIX/etc/motd" ]; then
       color_choice=$(dialog --colors --title " \Z1Select Text Color\Z0" \
         --backtitle "Termux Setup v$SCRIPT_VERSION" \
         --menu "Choose a color:" 20 60 12 \
-        1 "Bright Blue \Zb\Z4■\Zn Sample" \
-        2 "Bright Red \Zb\Z1■\Zn Sample" \
-        3 "Bright Yellow \Zb\Z3■\Zn Sample" \
-        4 "Orange \Zb\Z9■\Zn Sample" \
-        5 "Bright Green \Zb\Z2■\Zn Sample" \
-        6 "Cyan \Zb\Z6■\Zn Sample" \
-        7 "White \Zb\Z7■\Zn Sample" \
-        8 "Purple \Zb\Z5■\Zn Sample" \
-        9 "Pink \Zb\Z13■\Zn Sample" \
-        10 "Teal \Zb\Z14■\Zn Sample" \
-        11 "Gray \Zb\Z8■\Zn Sample" \
+        1 "Bright Blue \Zb\Z4■\Zn" \
+        2 "Bright Red \Zb\Z1■\Zn" \
+        3 "Bright Yellow \Zb\Z3■\Zn" \
+        4 "Orange \Zb\Z9■\Zn" \
+        5 "Bright Green \Zb\Z2■\Zn" \
+        6 "Cyan \Zb\Z6■\Zn" \
+        7 "White \Zb\Z7■\Zn" \
+        8 "Purple \Zb\Z5■\Zn" \
+        9 "Pink \Zb\Z13■\Zn" \
+        10 "Teal \Zb\Z14■\Zn" \
+        11 "Gray \Zb\Z8■\Zn" \
         12 "Random Color" \
         13 "Cancel" 3>&1 1>&2 2>&3)
       [ $? -ne 0 ] || [ "$color_choice" -eq 13 ] && continue
 
-      # Function to get color code  
       get_color() {  
         case $1 in  
           1) echo '\033[1;34m' ;;    # Bright Blue  
@@ -318,12 +169,6 @@ EOF
       }
 
       color=$(get_color $color_choice)  
-        
-      # Show random color preview if selected  
-      if [ "$color_choice" -eq 12 ]; then  
-        dialog --colors --msgbox "\nRandom Color Preview:\n\n${color}This is your random color\033[0m" 8 40  
-      fi  
-        
       dialog --infobox "Applying text color..." 5 40  
       motd_content=$(sed -r "s/\x1B\[[0-9;]*[mK]//g" $PREFIX/etc/motd)  
       > $PREFIX/etc/motd  
@@ -334,8 +179,8 @@ EOF
     fi  
     ;;  
 
-  4)  
-    # Restore default MOTD with confirmation  
+  3)  
+    # Restore default MOTD with exact Termux spacing
     dialog --yesno "\n\Z1Are you sure you want to restore the default MOTD?\Zn" 7 50  
     if [ $? -eq 0 ]; then  
       > $PREFIX/etc/motd  
@@ -346,25 +191,17 @@ Welcome to Termux!
 Wiki:            https://wiki.termux.com
 Community forum: https://termux.com/community
 Gitter chat:     https://gitter.im/termux/termux
-IRC channel:     #termux on libera.chat
+IRC channel:     #termux on freenode
 
 Working with packages:
-
-Search packages:   pkg search <query>
-
-Install a package: pkg install <package>
-
-Upgrade packages:  pkg upgrade
-
+- Search packages:   pkg search <query>
+- Install a package:  pkg install <package>
+- Upgrade packages:   pkg upgrade
 
 Subscribing to additional repositories:
-
-Root:     pkg install root-repo
-
-Unstable: pkg install unstable-repo
-
-X11:      pkg install x11-repo
-
+- Root:      pkg install root-repo
+- Unstable:  pkg install unstable-repo
+- X11:       pkg install x11-repo
 
 Report issues at https://termux.com/issues
 EOF
@@ -374,11 +211,12 @@ EOF
     fi
     ;;
 
-  5)  
-    return  
+  4)  
+    # Return to MainMenu  
+    break  
     ;;  
-esac
 
+esac
 done
 }
 
@@ -395,22 +233,20 @@ radare2_suite() {
     
     # Display alphabetized menu
     choice=$(dialog --title "Radare2 Suite" \
-      --menu "Choose an option:" 20 60 10 \
+      --menu "Choose an option:" 20 60 6 \
       1 "Asm Disasm (index.android.bundle)" \
       2 "Disasm (index.android.bundle)" \
       3 "Install HBCTOOL" \
-      4 "Install KeySigner" \
-      5 "Install Radare2" \
-      6 "Install SigTool" \
-      7 "Return to MainMenu" 3>&1 1>&2 2>&3)
+      4 "Install Radare2" \
+      5 "Return to MainMenu" 3>&1 1>&2 2>&3)
     
     clear
     case "$choice" in
       1)
         echo -e "${BLUE}[+] Running HBCTool Asm...${RESET}"
-        if [ -d "/storage/emulated/0/MT2/apks/disasm" ]; then
+        if [ -d "/storage/emulated/0/Shite/apks/disasm" ]; then
           echo -e "${YELLOW}[*] Processing disasm files...${RESET}"
-          if hbctool asm "/storage/emulated/0/MT2/apks/disasm" "/storage/emulated/0/MT2/apks/index.android.bundle" >/dev/null 2>&1; then
+          if hbctool asm "/storage/emulated/0/Shite/apks/disasm" "/storage/emulated/0/Shite/apks/index.android.bundle" >/dev/null 2>&1; then
             echo -e "${GREEN}[✔] Operation completed successfully!${RESET}"
             echo -e "${BLUE}Output file is ready${RESET}"
           else
@@ -424,18 +260,16 @@ radare2_suite() {
         ;;
       2)
         echo -e "${BLUE}[+] Running HBCTool Disasm...${RESET}"
-        # Clear existing disasm directory silently
-        rm -rf "/storage/emulated/0/MT2/apks/disasm" 2>/dev/null
+        rm -rf "/storage/emulated/0/Shite/apks/disasm" 2>/dev/null
         
-        if [ -f "/storage/emulated/0/MT2/apks/index.android.bundle" ]; then
+        if [ -f "/storage/emulated/0/Shite/apks/index.android.bundle" ]; then
           echo -e "${YELLOW}[*] Processing bundle file...${RESET}"
-          if hbctool disasm "/storage/emulated/0/MT2/apks/index.android.bundle" "/storage/emulated/0/MT2/apks/disasm" >/dev/null 2>&1; then
+          if hbctool disasm "/storage/emulated/0/Shite/apks/index.android.bundle" "/storage/emulated/0/Shite/apks/disasm" >/dev/null 2>&1; then
             echo -e "${GREEN}[✔] Operation completed successfully!${RESET}"
             echo -e "${BLUE}Output files are ready${RESET}"
           else
             echo -e "${RED}[!] Operation failed${RESET}"
-            # Clean up failed disassembly directory if it exists
-            rm -rf "/storage/emulated/0/MT2/apks/disasm" 2>/dev/null
+            rm -rf "/storage/emulated/0/Shite/apks/disasm" 2>/dev/null
           fi
         else
           echo -e "${RED}[!] Required file not found${RESET}"
@@ -444,7 +278,6 @@ radare2_suite() {
         sleep 3
         ;;
       3)
-        # HBCTool installation code
         echo -e "${BLUE}[+] Installing Hbctool...${RESET}"
         
         if ! command -v wget &> /dev/null; then
@@ -452,7 +285,6 @@ radare2_suite() {
           pkg install -y wget
         fi
 
-        # Download hbctool wheel file
         echo -e "${YELLOW}[*] Downloading HBCTool package...${RESET}"
         if wget -q -O "$HOME/hbctool-0.1.5-96-py3-none-any.whl" https://github.com/Kirlif/HBC-Tool/releases/download/96/hbctool-0.1.5-96-py3-none-any.whl; then
           pip install --force-reinstall "$HOME/hbctool-0.1.5-96-py3-none-any.whl"
@@ -465,7 +297,6 @@ radare2_suite() {
           continue
         fi
         
-        # Download hbclabel.py
         echo -e "${YELLOW}[*] Downloading hbclabel.py...${RESET}"
         if wget -q -O "$HOME/hbclabel.py" https://raw.githubusercontent.com/Kirlif/Python-Stuff/main/hbclabel.py; then
           chmod +x "$HOME/hbclabel.py"
@@ -482,30 +313,17 @@ radare2_suite() {
         sleep 5
         ;;
       4)
-        echo -e "${BLUE}[+] Installing KeySigner...${RESET}"
-        pkg install -y python openjdk-17 apksigner openssl-tool
-        git clone https://github.com/muhammadrizwan87/keysigner.git "$HOME/keysigner"
-        cd "$HOME/keysigner" && pip install build && python -m build
-        pip install --force-reinstall dist/*.whl
-        echo -e "${GREEN}[✔] KeySigner installed successfully!${RESET}"
-        sleep 5
-        ;;
-      5)
         echo -e "${BLUE}[+] Installing Radare2...${RESET}"
-        pkg update -y && pkg upgrade -y && pkg install -y git clang make binutils curl python && git clone https://github.com/radareorg/radare2 "$HOME/radare2" && cd "$HOME/radare2" && ./sys/install.sh && source ~/.bashrc && r2pm init && r2pm update && r2pm -ci r2ghidra && pip install --upgrade pip && pip install r2pipe
+        pkg update -y && pkg upgrade -y && pkg install -y git clang make binutils curl python
+        git clone https://github.com/radareorg/radare2 "$HOME/radare2"
+        cd "$HOME/radare2" && ./sys/install.sh
+        source ~/.bashrc
+        r2pm init && r2pm update && r2pm -ci r2ghidra
+        pip install --upgrade pip && pip install r2pipe
         echo -e "${GREEN}[✔] Radare2 installed successfully!${RESET}"
         sleep 5
         ;;
-      6)
-        echo -e "${BLUE}[+] Installing SigTool...${RESET}"
-        pkg install -y python openjdk-17 aapt openssl-tool
-        git clone https://github.com/muhammadrizwan87/sigtool.git "$HOME/sigtool"
-        cd "$HOME/sigtool" && pip install build && python -m build
-        pip install --force-reinstall dist/*.whl
-        echo -e "${GREEN}[✔] SigTool installed successfully!${RESET}"
-        sleep 5
-        ;;
-      7)
+      5)
         return
         ;;
     esac
@@ -514,263 +332,256 @@ radare2_suite() {
 
 # =====[ Blutter Suite ]=====
 blutter_suite() {
-  # Define color codes
-  RED='\033[1;31m'
-  GREEN='\033[1;32m'
-  YELLOW='\033[1;33m'
-  ORANGE='\033[38;5;208m'
-  BLUE='\033[1;34m'
-  RESET='\033[0m'
 
-  while true; do
+# Define color codes
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+ORANGE='\033[38;5;208m'
+BLUE='\033[1;34m'
+RESET='\033[0m'
+
+while true; do
     local choice
     if [ -d "$HOME/blutter-termux" ]; then
-      choice=$(dialog --title "Blutter Suite" \
-        --menu "Blutter is installed. Choose an option:" 15 50 5 \
-        1 "APKEditor" \
-        2 "Hermes (Decompile & Disasm)" \
-        3 "Install Blutter" \
-        4 "Process arm64-v8a (Auto)" \
-        5 "Return to MainMenu" 3>&1 1>&2 2>&3)
+        choice=$(dialog --title "Blutter Suite" \
+            --menu "Blutter is installed. Choose an option:" 15 50 5 \
+            1 "APKEditor" \
+            2 "Hermes (Decompile & Disasm)" \
+            3 "Install/Update/Remove Blutter" \
+            4 "Process arm64-v8a (Auto)" \
+            5 "Return to MainMenu" 3>&1 1>&2 2>&3)
     else
-      choice=$(dialog --title "Blutter Suite" \
-        --menu "Blutter not detected. Choose an option:" 15 50 5 \
-        1 "APKEditor" \
-        2 "Hermes (Decompile & Disasm)" \
-        3 "Install Blutter" \
-        4 "Process arm64-v8a (Auto)" \
-        5 "Return to MainMenu" 3>&1 1>&2 2>&3)
+        choice=$(dialog --title "Blutter Suite" \
+            --menu "Blutter not detected. Choose an option:" 15 50 5 \
+            1 "APKEditor" \
+            2 "Hermes (Decompile & Disasm)" \
+            3 "Install/Update/Remove Blutter" \
+            4 "Process arm64-v8a (Auto)" \
+            5 "Return to MainMenu" 3>&1 1>&2 2>&3)
     fi
 
     clear
     case "$choice" in
-      1)
-# =====[ APKEditor Implementation ]=====
-        apk_editor_loop() {
-          while true; do
-            # Check/install APKEditor
-            if [ ! -f "/storage/emulated/0/MT2/APKEditor.jar" ]; then
-              echo -e "${BLUE}[*] Downloading APKEditor...${RESET}"
-              mkdir -p $HOME/temp_downloads
-              cd $HOME/temp_downloads
-              if wget -q https://github.com/REandroid/APKEditor/releases/download/V1.4.3/APKEditor-1.4.3.jar; then
-                mkdir -p /storage/emulated/0/MT2
-                if mv APKEditor-1.4.3.jar /storage/emulated/0/MT2/APKEditor.jar; then
-                  echo -e "${GREEN}[✔] APKEditor installed${RESET}"
-                else
-                  echo -e "${RED}[!] Failed to move APKEditor${RESET}"
-                  cd $HOME && rm -rf $HOME/temp_downloads
-                  return 1
-                fi
-              else
-                echo -e "${RED}[!] Download failed${RESET}"
-                cd $HOME && rm -rf $HOME/temp_downloads
-                return 1
-              fi
-              cd $HOME && rm -rf $HOME/temp_downloads
-            fi
+        1)
+            # =====[ APKEditor Implementation ]=====
+            apk_editor_loop() {
+                while true; do
+                    # Check/install APKEditor
+                    if [ ! -f "/storage/emulated/0/Shite/APKEditor.jar" ]; then
+                        echo -e "${BLUE}[*] Downloading APKEditor v1.4.5...${RESET}"
+                        mkdir -p $HOME/temp_downloads
+                        cd $HOME/temp_downloads
 
-            # Check Java tools
-            if ! command -v keytool &> /dev/null || ! command -v jarsigner &> /dev/null; then
-              echo -e "${BLUE}[*] Installing Java tools...${RESET}"
-              pkg install -y openjdk-17
-            fi
+                        if wget -q https://github.com/REAndroid/APKEditor/releases/download/V1.4.5/APKEditor-1.4.5.jar; then
+                            mkdir -p /storage/emulated/0/Shite
+                            if mv APKEditor-1.4.5.jar /storage/emulated/0/Shite/APKEditor.jar; then
+                                echo -e "${GREEN}[✔] APKEditor installed${RESET}"
+                            else
+                                echo -e "${RED}[!] Failed to move APKEditor${RESET}"
+                                cd $HOME && rm -rf $HOME/temp_downloads
+                                return 1
+                            fi
+                        else
+                            echo -e "${RED}[!] Download failed${RESET}"
+                            cd $HOME && rm -rf $HOME/temp_downloads
+                            return 1
+                        fi
 
-            # Auto-detect APK
-            auto_detect_apk() {
-              local apk_dir="/storage/emulated/0/MT2/apks"
-              mkdir -p "$apk_dir"
-              local apk_file=$(find "$apk_dir" -maxdepth 1 -type f \( -name "*.apk" -o -name "*.apks" -o -name "*.xapk" \) -print -quit)
-              [ -z "$apk_file" ] && return 1
-              basename "${apk_file%.*}"
+                        cd $HOME && rm -rf $HOME/temp_downloads
+                    fi
+
+                    # Check Java tools
+                    if ! command -v keytool &> /dev/null || ! command -v jarsigner &> /dev/null; then
+                        echo -e "${BLUE}[*] Installing Java tools...${RESET}"
+                        pkg install -y openjdk-17
+                    fi
+
+                    # Auto-detect APK
+                    auto_detect_apk() {
+                        local apk_dir="/storage/emulated/0/Shite/apks"
+                        mkdir -p "$apk_dir"
+                        local apk_file=$(find "$apk_dir" -maxdepth 1 -type f \( -name "*.apk" -o -name "*.apks" -o -name "*.xapk" \) -print -quit)
+                        [ -z "$apk_file" ] && return 1
+                        basename "${apk_file%.*}"
+                    }
+
+                    apk_name=$(auto_detect_apk) || {
+                        echo -e "${RED}[!] No APK files found in /storage/emulated/0/Shite/apks/${RESET}"
+                        read -p "Press [Enter] to continue..."
+                        continue
+                    }
+
+                    # APKEditor menu
+                    apkeditor_choice=$(dialog --title "APKEditor (${apk_name})" \
+                        --menu "Select operation:" 15 60 6 \
+                        1 "Merge APKS/XAPK → APK" \
+                        2 "Decompile APK" \
+                        3 "Compile APK" \
+                        4 "Refactor APK" \
+                        5 "Protect APK" \
+                        6 "Back" 3>&1 1>&2 2>&3)
+
+                    case "$apkeditor_choice" in
+                        1)
+                            cd /storage/emulated/0/Shite/
+                            rm -f "apks/$apk_name.apk" 2>/dev/null
+                            java -jar APKEditor.jar m -i "apks/$apk_name.apks" -o "apks/$apk_name.apk"
+                            read -p "Press [Enter] to continue..."
+                            ;;
+                        2)
+                            cd /storage/emulated/0/Shite/
+                            rm -rf "apks/$apk_name/" 2>/dev/null
+                            java -jar APKEditor.jar d -i "apks/$apk_name.apk" -o "apks/$apk_name/"
+                            read -p "Press [Enter] to continue..."
+                            ;;
+                        3)
+                            cd /storage/emulated/0/Shite/
+                            rm -f "apks/$apk_name.apk" 2>/dev/null
+                            java -jar APKEditor.jar b -i "apks/$apk_name/" -o "apks/$apk_name.apk"
+                            read -p "Press [Enter] to continue..."
+                            ;;
+                        4)
+                            cd /storage/emulated/0/Shite/
+                            rm -f "apks/${apk_name}_refactored.apk" 2>/dev/null
+                            java -jar APKEditor.jar x -i "apks/$apk_name.apk" -o "apks/${apk_name}_refactored.apk"
+                            read -p "Press [Enter] to continue..."
+                            ;;
+                        5)
+                            cd /storage/emulated/0/Shite/
+                            rm -f "apks/${apk_name}_protected.apk" 2>/dev/null
+                            java -jar APKEditor.jar p -i "apks/$apk_name.apk" -o "apks/${apk_name}_protected.apk"
+                            read -p "Press [Enter] to continue..."
+                            ;;
+                        6)
+                            return
+                            ;;
+                    esac
+                done
             }
-
-            apk_name=$(auto_detect_apk) || {
-              echo -e "${RED}[!] No APK files found in /storage/emulated/0/MT2/apks/${RESET}"
-              read -p "Press [Enter] to continue..."
-              continue
-            }
-
-            # APKEditor menu
-            apkeditor_choice=$(dialog --title "APKEditor (${apk_name})" \
-              --menu "Select operation:" 15 60 6 \
-              1 "Merge APKS/XAPK → APK" \
-              2 "Decompile APK" \
-              3 "Compile APK" \
-              4 "Refactor APK" \
-              5 "Protect APK" \
-              6 "Back" 3>&1 1>&2 2>&3)
-
-            case "$apkeditor_choice" in
-              1)
-                cd /storage/emulated/0/MT2/
-                rm -f "apks/$apk_name.apk" 2>/dev/null
-                java -jar APKEditor.jar m -i "apks/$apk_name.apks" -o "apks/$apk_name.apk"
-                read -p "Press [Enter] to continue..."
-                ;;
-              2)
-                cd /storage/emulated/0/MT2/
-                rm -rf "apks/$apk_name/" 2>/dev/null
-                java -jar APKEditor.jar d -i "apks/$apk_name.apk" -o "apks/$apk_name/"
-                read -p "Press [Enter] to continue..."
-                ;;
-              3)
-                cd /storage/emulated/0/MT2/
-                rm -f "apks/$apk_name.apk" 2>/dev/null
-                java -jar APKEditor.jar b -i "apks/$apk_name/" -o "apks/$apk_name.apk"
-                read -p "Press [Enter] to continue..."
-                ;;
-              4)
-                cd /storage/emulated/0/MT2/
-                rm -f "apks/${apk_name}_refactored.apk" 2>/dev/null
-                java -jar APKEditor.jar x -i "apks/$apk_name.apk" -o "apks/${apk_name}_refactored.apk"
-                read -p "Press [Enter] to continue..."
-                ;;
-              5)
-                cd /storage/emulated/0/MT2/
-                rm -f "apks/${apk_name}_protected.apk" 2>/dev/null
-                java -jar APKEditor.jar p -i "apks/$apk_name.apk" -o "apks/${apk_name}_protected.apk"
-                read -p "Press [Enter] to continue..."
-                ;;
-              6) 
-                return 
-                ;;
+            apk_editor_loop
+            ;;
+        2)
+            # =======[ Hermes Decompiler ]=======
+            if [ -d "$HOME/blutter-termux" ]; then
+                echo -e "${BLUE}[*] Installing Hermes...${RESET}"
+                pkg install -y python pip clang
+                cd $HOME
+                git clone https://github.com/P1sec/hermes-dec.git
+                pip install --upgrade git+https://github.com/P1sec/hermes-dec.git
+                echo -e "${GREEN}[✔] Hermes installed${RESET}"
+            else
+                echo -e "${RED}[!] Install Blutter first${RESET}"
+            fi
+            read -p "Press [Enter] to continue..."
+            ;;
+        3)
+            # =====[ Corrected Blutter Installer / Updater / Remover ]======
+            echo -e "${BLUE}[*] Blutter Management...${RESET}"
+            blutter_action=$(dialog --title "Blutter Management" \
+                --menu "Select action:" 15 50 3 \
+                1 "Install/Update Blutter" \
+                2 "Remove Blutter" \
+                3 "Return" 3>&1 1>&2 2>&3)
+            case "$blutter_action" in
+                1)
+                    echo -e "${BLUE}[*] Installing/Updating Blutter...${RESET}"
+                    # Dependencies
+                    apt install -y python3-pyelftools python3-requests git cmake ninja-build \
+                        build-essential pkg-config libicu-dev libcapstone-dev
+                    # Remove old version if exists
+                    if [ -d "$HOME/blutter-termux" ]; then
+                        echo -e "${YELLOW}[!] Removing old Blutter...${RESET}"
+                        rm -rf "$HOME/blutter-termux"
+                        echo -e "${GREEN}[✔] Old Blutter removed${RESET}"
+                    fi
+                    echo -e "${BLUE}[*] Cloning latest Blutter...${RESET}"
+                    cd $HOME
+                    git clone https://github.com/worawit/blutter
+                    echo -e "${GREEN}[✔] Blutter installed/updated successfully!${RESET}"
+                    read -p "Press [Enter] to continue..."
+                    ;;
+                2)
+                    echo -e "${BLUE}[*] Removing existing Blutter...${RESET}"
+                    rm -rf "$HOME/blutter-termux"
+                    echo -e "${GREEN}[✔] Blutter removed!${RESET}"
+                    read -p "Press [Enter] to continue..."
+                    ;;
+                3)
+                    ;;
             esac
-          done
-        }
-        apk_editor_loop
-        ;;
-      2)
-        # =======[ Hermes Decompiler ]=======
-        if [ -d "$HOME/blutter-termux" ]; then
-          echo -e "${BLUE}[*] Installing Hermes...${RESET}"
-          pkg install -y python pip clang
-          cd $HOME
-          git clone https://github.com/P1sec/hermes-dec.git
-          pip install --upgrade git+https://github.com/P1sec/hermes-dec.git
-          echo -e "${GREEN}[✔] Hermes installed${RESET}"
-        else
-          echo -e "${RED}[!] Install Blutter first${RESET}"
-        fi
-        read -p "Press [Enter] to continue..."
-        ;;
-      3)
-        # =====[ Corrected Blutter Installer ]======
-        echo -e "${BLUE}[*] Starting Blutter installation...${RESET}"
-        
-        # Update system packages
-        echo -e "${YELLOW}[!] Updating system packages...${RESET}"
-        pkg update -y && pkg upgrade -y
-        
-        # Install dependencies
-        echo -e "${YELLOW}[!] Installing dependencies...${RESET}"
-        pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt
-        
-        # Install Python packages
-        echo -e "${YELLOW}[!] Installing Python dependencies...${RESET}"
-        pip install requests pyelftools
-        
-        # Clone repository
-        echo -e "${YELLOW}[!] Cloning Blutter repository...${RESET}"
-        cd $HOME
-        if git clone https://github.com/dedshit/blutter-termux.git; then
-          echo -e "${GREEN}[✔] Repository cloned successfully${RESET}"
-          
-          # Check for std::format errors and fix if needed
-          echo -e "${YELLOW}[!] Checking for compilation issues...${RESET}"
-          if grep -r "std::format" $HOME/blutter-termux/; then
-            echo -e "${YELLOW}[!] Found std::format usage, replacing with fmt::format...${RESET}"
-            find $HOME/blutter-termux/ -type f -exec sed -i 's/std::format/fmt::format/g' {} +
-            echo -e "${GREEN}[✔] Source files modified${RESET}"
-          fi
-          
-          echo -e "${GREEN}[✔] Blutter installed successfully!${RESET}"
-          echo -e "To run Blutter, execute:"
-          echo -e "cd ~/blutter-termux && ./blutter"
-        else
-          echo -e "${RED}[!] Failed to clone repository${RESET}"
-          echo -e "Please check your internet connection and try again"
-        fi
-        sleep 2
-        ;;
-      4)
-# ====[ ARM64 Processor with Custom Output ]====
-        if [ -d "$HOME/blutter-termux" ]; then
-          # Path configuration
-          ARM64_DIR="/storage/emulated/0/MT2/apks/arm64-v8a"
-          OUT_DIR="/storage/emulated/0/MT2/apks/out-dir"
-          
-          # Validation checks
-          if [ ! -f "$ARM64_DIR/libapp.so" ]; then
-            echo -e "${RED}[!] libapp.so missing in arm64-v8a${RESET}"
-            read -p "Press [Enter] to continue..."
-            continue
-          fi
-          
-          if [ ! -f "$ARM64_DIR/libflutter.so" ]; then
-            echo -e "${RED}[!] libflutter.so missing in arm64-v8a${RESET}"
-            read -p "Press [Enter] to continue..."
-            continue
-          fi
+            ;;
+        4)
+            # ====[ ARM64 Processor with Custom Output ]====
+            if [ -d "$HOME/blutter-termux" ]; then
+                ARM64_DIR="/storage/emulated/0/Shite/apks/arm64-v8a"
+                OUT_DIR="/storage/emulated/0/Shite/apks/out-dir"
 
-          # Prepare clean output directory (automatically clears existing)
-          rm -rf "$OUT_DIR" 2>/dev/null
-          mkdir -p "$OUT_DIR"
+                if [ ! -f "$ARM64_DIR/libapp.so" ]; then
+                    echo -e "${RED}[!] libapp.so missing in arm64-v8a${RESET}"
+                    read -p "Press [Enter] to continue..."
+                    continue
+                fi
 
-          # Run processing with custom output
-          echo -e "${GREEN}Already up to date.${RESET}"
-          
-          # Get Dart version info
-          DART_VER=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Dart version" | cut -d' ' -f3-)
-          SNAPSHOT_HASH=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Snapshot hash" | cut -d' ' -f3)
-          FLAGS=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Build flags" | cut -d':' -f2- | sed 's/^ //')
-          
-          echo -e "Dart version: ${DART_VER}, Snapshot: ${SNAPSHOT_HASH}, Target: android arm64"
-          echo -e "flags: ${FLAGS}"
-          echo -e "Cannot find null-safety text. Setting null_safety to true."
-          
-          # Generate memory addresses
-          MEM_ADDR=$((0x7000000000 + RANDOM % 1000000))
-          echo -e "libapp is loaded at 0x$(printf '%x' $MEM_ADDR)"
-          echo -e "Dart heap at 0x7000000000"
-          
-          # Processing steps
-          echo -e "Analyzing the application"
-          echo -e "Dumping Object Pool"
-          echo -e "Generating application assemblies"
-          echo -e "Generating radare2 script" 
-          echo -e "Generating IDA script"
-          echo -e "Generating Frida script"
-          
-          # Actual processing (silent)
-          cd "$HOME/blutter-termux"
-          python blutter.py "$ARM64_DIR" "$OUT_DIR" >/dev/null 2>&1
-          
-          # Organize output files (force overwrite existing)
-          rm -f "$OUT_DIR/blutter_frida.js" 2>/dev/null
-          rm -f "$OUT_DIR/ida_script.py" 2>/dev/null
-          rm -f "$OUT_DIR/r2_script.r2" 2>/dev/null
-          rm -f "$OUT_DIR/objs.txt" 2>/dev/null
-          rm -f "$OUT_DIR/pp.txt" 2>/dev/null
-          
-          mv "$OUT_DIR"/*.js "$OUT_DIR/blutter_frida.js" 2>/dev/null
-          mv "$OUT_DIR"/*.py "$OUT_DIR/ida_script.py" 2>/dev/null
-          mv "$OUT_DIR"/*.r2 "$OUT_DIR/r2_script.r2" 2>/dev/null
-          mv "$OUT_DIR"/object_pool.txt "$OUT_DIR/objs.txt" 2>/dev/null
-          mv "$OUT_DIR"/preprocessed.txt "$OUT_DIR/pp.txt" 2>/dev/null
-          
-          echo -e "${GREEN}done${RESET}"
-          read -p "Press [Enter] to continue..."
-        else
-          echo -e "${RED}[!] Install Blutter first (option 3)${RESET}"
-          read -p "Press [Enter] to continue..."
-        fi
-        ;;
-      5)
-        return
-        ;;
+                if [ ! -f "$ARM64_DIR/libflutter.so" ]; then
+                    echo -e "${RED}[!] libflutter.so missing in arm64-v8a${RESET}"
+                    read -p "Press [Enter] to continue..."
+                    continue
+                fi
+
+                rm -rf "$OUT_DIR" 2>/dev/null
+                mkdir -p "$OUT_DIR"
+
+                echo -e "${GREEN}Already up to date.${RESET}"
+
+                # Get Dart version info
+                DART_VER=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Dart version" | cut -d' ' -f3-)
+                SNAPSHOT_HASH=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Snapshot hash" | cut -d' ' -f3)
+                FLAGS=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Build flags" | cut -d':' -f2- | sed 's/^ //')
+
+                echo -e "Dart version: ${DART_VER}, Snapshot: ${SNAPSHOT_HASH}, Target: android arm64"
+                echo -e "flags: ${FLAGS}"
+                echo -e "Cannot find null-safety text. Setting null_safety to true."
+
+                # Use actual memory addresses from libflutter
+                BASE_ADDR=$(readelf -W -S "$ARM64_DIR/libflutter.so" | grep .text | awk '{print $5}')
+                echo -e "libapp is loaded at 0x${BASE_ADDR}"
+                echo -e "Dart heap at 0x7000000000"
+
+                echo -e "Analyzing the application"
+                echo -e "Dumping Object Pool"
+                echo -e "Generating application assemblies"
+                echo -e "Generating radare2 script"
+                echo -e "Generating IDA script"
+                echo -e "Generating Frida script"
+
+                cd "$HOME/blutter-termux"
+                python blutter.py "$ARM64_DIR" "$OUT_DIR" >/dev/null 2>&1
+
+                rm -f "$OUT_DIR/blutter_frida.js" 2>/dev/null
+                rm -f "$OUT_DIR/ida_script.py" 2>/dev/null
+                rm -f "$OUT_DIR/r2_script.r2" 2>/dev/null
+                rm -f "$OUT_DIR/objs.txt" 2>/dev/null
+                rm -f "$OUT_DIR/pp.txt" 2>/dev/null
+
+                mv "$OUT_DIR"/*.js "$OUT_DIR/blutter_frida.js" 2>/dev/null
+                mv "$OUT_DIR"/*.py "$OUT_DIR/ida_script.py" 2>/dev/null
+                mv "$OUT_DIR"/*.r2 "$OUT_DIR/r2_script.r2" 2>/dev/null
+                mv "$OUT_DIR"/object_pool.txt "$OUT_DIR/objs.txt" 2>/dev/null
+                mv "$OUT_DIR"/preprocessed.txt "$OUT_DIR/pp.txt" 2>/dev/null
+
+                echo -e "${GREEN}done${RESET}"
+                read -p "Press [Enter] to continue..."
+            else
+                echo -e "${RED}[!] Install Blutter first (option 3)${RESET}"
+                read -p "Press [Enter] to continue..."
+            fi
+            ;;
+        5)
+            return
+            ;;
     esac
-  done
+done
 }
 
 # =========[ Refresh Function ]=========
