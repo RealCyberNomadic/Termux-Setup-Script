@@ -2,7 +2,7 @@
 
 # Script Configuration
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
-SCRIPT_VERSION="1.2.5"
+SCRIPT_VERSION="2.1.1"
 
 # ====[ Utility Functions ]====
 check_termux_storage() {
