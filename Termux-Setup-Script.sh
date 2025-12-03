@@ -113,15 +113,16 @@ case $choice in
         ;;
     esac
 
-    printf "${color1}" >> $PREFIX/etc/motd
-    cat << 'EOF' | head -n 3 >> $PREFIX/etc/motd
+printf "${color1}" >> $PREFIX/etc/motd
+cat << 'EOF' | head -n 3 >> $PREFIX/etc/motd
   ████████╗███████╗██████╗ ███╗   ███╗██╗   ██╗██╗  ██╗
   ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║   ██║╚██╗██╔╝
-     ██║   █████╗  ██████╔╝██╔████╔██║██║   ██║ ╚███╔╝ 
+     ██║   █████╗  ██████╔╝██╔████╔██║██║   ██║ ╚███╔╝
 EOF
-    printf "${color2}" >> $PREFIX/etc/motd
-    cat << 'EOF' | tail -n 3 >> $PREFIX/etc/motd
-     ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║   ██║ ██╔██╗ 
+
+printf "${color2}" >> $PREFIX/etc/motd
+cat << 'EOF' | tail -n 3 >> $PREFIX/etc/motd
+     ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║   ██║ ██╔██╗
      ██║   ███████╗██║  ██║██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗
      ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝
 EOF
