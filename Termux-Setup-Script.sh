@@ -2,7 +2,7 @@
 
 # Script Configuration
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
-SCRIPT_VERSION="2.2.2"
+SCRIPT_VERSION="2.2.3"
 
 # ====[ Auto Update Function ]====
 check_and_update() {
