@@ -2,14 +2,57 @@
 
 # Script Configuration
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
-SCRIPT_VERSION="2.1.1"
+SCRIPT_VERSION="2.2.1"
+
+# ====[ Auto Update Function ]====
+check_and_update() {
+    echo -e "\033[1;34m[~] Checking for updates...\033[0m"
+    
+    # Check if curl is available
+    if ! command -v curl &> /dev/null; then
+        echo -e "\033[1;33m[!] curl not found. Skipping update check.\033[0m"
+        return
+    fi
+    
+    # Fetch the latest version from GitHub
+    LATEST_VERSION=$(curl -s "$SCRIPT_URL" | grep -o 'SCRIPT_VERSION="[0-9.]*"' | head -1 | cut -d'"' -f2)
+    
+    if [ -z "$LATEST_VERSION" ]; then
+        echo -e "\033[1;33m[!] Could not check for updates. Continuing with current version.\033[0m"
+        return
+    fi
+    
+    if [ "$LATEST_VERSION" != "$SCRIPT_VERSION" ]; then
+        echo -e "\033[1;32m[+] Update found! Current: $SCRIPT_VERSION, Latest: $LATEST_VERSION\033[0m"
+        echo -e "\033[1;34m[~] Downloading update...\033[0m"
+        
+        # Download the updated script
+        curl -s "$SCRIPT_URL" -o "$0.tmp"
+        
+        if [ -f "$0.tmp" ] && [ -s "$0.tmp" ]; then
+            # Make it executable and replace current script
+            chmod +x "$0.tmp"
+            mv "$0.tmp" "$0"
+            echo -e "\033[1;32m[+] Update installed! Restarting script...\033[0m"
+            
+            # Restart the script with the update
+            exec "$0"
+        else
+            echo -e "\033[1;31m[!] Failed to download update. Continuing with current version.\033[0m"
+            rm -f "$0.tmp" 2>/dev/null
+        fi
+    else
+        echo -e "\033[1;32m[✓] You are running the latest version ($SCRIPT_VERSION)\033[0m"
+    fi
+}
 
 # ====[ Utility Functions ]====
 check_termux_storage() {
-  if [ ! -d "$HOME/storage" ]; then
-    echo -e "\033[1;33m[!] Setting up Termux storage...\033[0m"
-    termux-setup-storage
-  fi
+    # Check if storage is already set up by looking for the storage directory
+    if [ ! -d "$HOME/storage" ]; then
+        echo -e "\033[1;33m[!] Setting up Termux storage...\033[0m"
+        termux-setup-storage
+    fi
 }
 
 # ==== [ Shortcut Alias ] ====
@@ -17,6 +60,7 @@ add_alias() {
     local alias_line_lower="alias tts='bash \$HOME/Termux-Setup-Script/Termux-Setup-Script.sh'"
     local alias_line_upper="alias TTS='bash \$HOME/Termux-Setup-Script/Termux-Setup-Script.sh'"
     local shell_rc=""
+    local aliases_added=0
 
     # Detect shell rc file
     case "$SHELL" in
@@ -39,21 +83,23 @@ add_alias() {
     # Add lowercase alias ONLY if not present
     if ! grep -Fxq "$alias_line_lower" "$shell_rc"; then
         printf "\n%s\n" "$alias_line_lower" >> "$shell_rc"
+        aliases_added=1
     fi
 
     # Add uppercase alias ONLY if not present
     if ! grep -Fxq "$alias_line_upper" "$shell_rc"; then
         printf "\n%s\n" "$alias_line_upper" >> "$shell_rc"
+        aliases_added=1
     fi
 
-    # Set aliases for current session (no duplicate writing here)
+    # Set aliases for current session
     alias tts='bash $HOME/Termux-Setup-Script/Termux-Setup-Script.sh'
     alias TTS='bash $HOME/Termux-Setup-Script/Termux-Setup-Script.sh'
 
-    # Optional dialog
-    if command -v dialog >/dev/null 2>&1; then
+    # Show dialog ONLY if aliases were newly added
+    if [ "$aliases_added" -eq 1 ] && command -v dialog >/dev/null 2>&1; then
         dialog --title "Shortcut Added" \
-               --msgbox "You can now use:\n\n  tts\n  TTS" 10 40
+               --msgbox "You can now use:\n\n  tts\n  TTS\n\nto run this script from anywhere in your terminal." 12 50
     fi
 }
 
@@ -72,46 +118,54 @@ choice=$(dialog --colors --title " \Z1MOTD Customization\Z0" \
 case $choice in  
 
   1)
-    # Color Presets
-    preset_choice=$(dialog --colors --title " \Z1Color Presets\Z0" \
-      --backtitle "Termux Setup v$SCRIPT_VERSION" \
-      --menu "Choose a color preset:" 20 60 12 \
-      1 "Red \Zb\Z1■\Zn & Green \Zb\Z2■\Zn" \
-      2 "Green \Zb\Z2■\Zn & Blue \Zb\Z4■\Zn" \
-      3 "Yellow \Zb\Z3■\Zn & Orange \Zb\Z9■\Zn" \
-      4 "Purple \Zb\Z5■\Zn & Pink \Zb\Z13■\Zn" \
-      5 "Cyan \Zb\Z6■\Zn & Orange \Zb\Z9■\Zn" \
-      6 "Blue \Zb\Z4■\Zn & Cyan \Zb\Z6■\Zn" \
-      7 "Red \Zb\Z1■\Zn & Yellow \Zb\Z3■\Zn" \
-      8 "Teal \Zb\Z14■\Zn & Purple \Zb\Z5■\Zn" \
-      9 "Pink \Zb\Z13■\Zn & Blue \Zb\Z4■\Zn" \
-      10 "Orange \Zb\Z9■\Zn & Gray \Zb\Z8■\Zn" \
-      11 "Rainbow Colors (Random)" \
-      12 "Cancel" 3>&1 1>&2 2>&3)
-    [ $? -ne 0 ] || [ "$preset_choice" -eq 12 ] && continue
+# Enhanced Color Presets with better combinations
+preset_choice=$(dialog --colors --title " \Z1Color Presets\Z0" \
+  --backtitle "Termux Setup v$SCRIPT_VERSION" \
+  --menu "Choose a color preset:" 20 60 12 \
+  1 "Sunset \Zb\Z9■\Zn & Purple \Zb\Z5■\Zn" \
+  2 "Ocean \Zb\Z4■\Zn & Teal \Zb\Z6■\Zn" \
+  3 "Forest \Zb\Z2■\Zn & Lime \Zb\Z10■\Zn" \
+  4 "Royal \Zb\Z5■\Zn & Gold \Zb\Z3■\Zn" \
+  5 "Sunrise \Zb\Z1■\Zn & Orange \Zb\Z9■\Zn" \
+  6 "Arctic \Zb\Z6■\Zn & Blue \Zb\Z4■\Zn" \
+  7 "Berry \Zb\Z13■\Zn & Plum \Zb\Z5■\Zn" \
+  8 "Cyan \Zb\Z14■\Zn & Navy \Zb\Z4■\Zn" \
+  9 "Coral \Zb\Z9■\Zn & Rose \Zb\Z13■\Zn" \
+  10 "Slate \Zb\Z8■\Zn & Emerald \Zb\Z10■\Zn" \
+  11 "Rainbow Colors (Random)" \
+  12 "Cancel" 3>&1 1>&2 2>&3)
 
-    # Apply preset
-    dialog --infobox "Applying color preset..." 5 40
-    > $PREFIX/etc/motd
-    
-    case $preset_choice in
-      1) color1='\033[1;31m'; color2='\033[1;32m' ;;    # Red & Green
-      2) color1='\033[1;32m'; color2='\033[1;34m' ;;    # Green & Blue
-      3) color1='\033[1;33m'; color2='\033[38;5;208m' ;; # Yellow & Orange
-      4) color1='\033[0;35m'; color2='\033[38;5;213m' ;; # Purple & Pink
-      5) color1='\033[0;36m'; color2='\033[38;5;208m' ;; # Cyan & Orange
-      6) color1='\033[1;34m'; color2='\033[0;36m' ;;     # Blue & Cyan
-      7) color1='\033[1;31m'; color2='\033[1;33m' ;;     # Red & Yellow
-      8) color1='\033[38;5;14m'; color2='\033[0;35m' ;;  # Teal & Purple
-      9) color1='\033[38;5;213m'; color2='\033[1;34m' ;; # Pink & Blue
-      10) color1='\033[38;5;208m'; color2='\033[38;5;8m' ;; # Orange & Gray
-      11) 
-        # Rainbow colors (random)
-        colors=('\033[1;31m' '\033[1;33m' '\033[1;32m' '\033[1;34m' '\033[0;35m' '\033[38;5;208m')
-        color1=${colors[$RANDOM % ${#colors[@]}]}
-        color2=${colors[$RANDOM % ${#colors[@]}]}
-        ;;
-    esac
+# Apply preset with better color codes
+case $preset_choice in
+  1) color1='\033[38;5;208m'; color2='\033[38;5;93m' ;;    # Orange & Purple (Sunset)
+  2) color1='\033[38;5;27m'; color2='\033[38;5;43m' ;;     # Deep Blue & Teal (Ocean)
+  3) color1='\033[38;5;28m'; color2='\033[38;5;46m' ;;     # Forest Green & Lime
+  4) color1='\033[38;5;57m'; color2='\033[38;5;220m' ;;    # Royal Purple & Gold
+  5) color1='\033[38;5;196m'; color2='\033[38;5;214m' ;;   # Red & Orange (Sunrise)
+  6) color1='\033[38;5;51m'; color2='\033[38;5;33m' ;;     # Bright Cyan & Blue (Arctic)
+  7) color1='\033[38;5;207m'; color2='\033[38;5;127m' ;;   # Pink & Purple (Berry)
+  8) color1='\033[38;5;45m'; color2='\033[38;5;18m' ;;     # Cyan & Navy
+  9) color1='\033[38;5;209m'; color2='\033[38;5;211m' ;;   # Coral & Rose
+  10) color1='\033[38;5;242m'; color2='\033[38;5;48m' ;;   # Gray & Emerald
+  11)
+    # Rainbow colors with better variety
+    colors=(
+      '\033[38;5;196m'  # Red
+      '\033[38;5;214m'  # Orange
+      '\033[38;5;226m'  # Yellow
+      '\033[38;5;46m'   # Green
+      '\033[38;5;45m'   # Cyan
+      '\033[38;5;57m'   # Purple
+      '\033[38;5;207m'  # Pink
+      '\033[38;5;51m'   # Bright Cyan
+    )
+    color1=${colors[$RANDOM % ${#colors[@]}]}
+    # Ensure color2 is different from color1
+    while [[ "$color2" == "$color1" || -z "$color2" ]]; do
+      color2=${colors[$RANDOM % ${#colors[@]}]}
+    done
+    ;;
+esac
 
 printf "${color1}" >> $PREFIX/etc/motd
 cat << 'EOF' | head -n 3 >> $PREFIX/etc/motd
@@ -315,12 +369,7 @@ radare2_suite() {
         ;;
       4)
         echo -e "${BLUE}[+] Installing Radare2...${RESET}"
-        pkg update -y && pkg upgrade -y && pkg install -y git clang make binutils curl python
-        git clone https://github.com/radareorg/radare2 "$HOME/radare2"
-        cd "$HOME/radare2" && ./sys/install.sh
-        source ~/.bashrc
-        r2pm init && r2pm update && r2pm -ci r2ghidra
-        pip install --upgrade pip && pip install r2pipe
+        pkg update -y && pkg upgrade -y && pkg install -y git clang make binutils curl python && git clone https://github.com/radareorg/radare2 "$HOME/radare2" && cd "$HOME/radare2" && ./sys/install.sh && source ~/.bashrc && r2pm init && r2pm update && r2pm -ci r2ghidra && pip install --upgrade pip && pip install r2pipe
         echo -e "${GREEN}[✔] Radare2 installed successfully!${RESET}"
         sleep 5
         ;;
@@ -374,7 +423,7 @@ while true; do
                         mkdir -p $HOME/temp_downloads
                         cd $HOME/temp_downloads
 
-                        if wget -q https://github.com/REAndroid/APKEditor/releases/download/V1.4.5/APKEditor-1.4.5.jar; then
+                        if wget -q https://github.com/REandroid/APKEditor/releases/download/V1.4.5/APKEditor-1.4.5.jar; then
                             mkdir -p /storage/emulated/0/Shite
                             if mv APKEditor-1.4.5.jar /storage/emulated/0/Shite/APKEditor.jar; then
                                 echo -e "${GREEN}[✔] APKEditor installed${RESET}"
@@ -477,41 +526,147 @@ while true; do
             read -p "Press [Enter] to continue..."
             ;;
         3)
-            # =====[ Corrected Blutter Installer / Updater / Remover ]======
-            echo -e "${BLUE}[*] Blutter Management...${RESET}"
-            blutter_action=$(dialog --title "Blutter Management" \
-                --menu "Select action:" 15 50 3 \
-                1 "Install/Update Blutter" \
-                2 "Remove Blutter" \
-                3 "Return" 3>&1 1>&2 2>&3)
-            case "$blutter_action" in
-                1)
-                    echo -e "${BLUE}[*] Installing/Updating Blutter...${RESET}"
-                    # Dependencies
-                    apt install -y python3-pyelftools python3-requests git cmake ninja-build \
-                        build-essential pkg-config libicu-dev libcapstone-dev
-                    # Remove old version if exists
-                    if [ -d "$HOME/blutter-termux" ]; then
-                        echo -e "${YELLOW}[!] Removing old Blutter...${RESET}"
-                        rm -rf "$HOME/blutter-termux"
-                        echo -e "${GREEN}[✔] Old Blutter removed${RESET}"
+        # =====[ Blutter Manager (Dedshit Only) ]======
+
+        # Detect installation
+        if [ -d "$HOME/blutter-termux" ]; then
+            installed_version="Dedshit"
+            installed_path="$HOME/blutter-termux"
+        else
+            installed_version="None"
+            installed_path=""
+        fi
+
+        blutter_option=$(dialog --title "Blutter Manager (Installed: $installed_version)" \
+            --menu "Select an option:" 15 60 5 \
+            1 "Install Blutter" \
+            2 "Update Blutter" \
+            3 "Reinstall Blutter" \
+            4 "Remove Blutter" \
+            5 "Return" 3>&1 1>&2 2>&3)
+
+        clear
+
+        case "$blutter_option" in
+
+            # --- Install Blutter ---
+            1)
+                if [ "$installed_version" != "None" ]; then
+                    dialog --msgbox "Blutter is already installed.\nUse Update or Reinstall." 10 50
+                    break
+                fi
+
+                echo -e "${BLUE}[*] Starting Blutter installation...${RESET}"
+                
+                # Update system packages
+                echo -e "${YELLOW}[!] Updating system packages...${RESET}"
+                pkg update -y && pkg upgrade -y
+                
+                # Install dependencies
+                echo -e "${YELLOW}[!] Installing dependencies...${RESET}"
+                pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt
+                
+                # Install Python packages
+                echo -e "${YELLOW}[!] Installing Python dependencies...${RESET}"
+                pip install requests pyelftools
+                
+                # Clone repository
+                echo -e "${YELLOW}[!] Cloning Blutter repository...${RESET}"
+                cd $HOME
+                if git clone https://github.com/dedshit/blutter-termux.git; then
+                  echo -e "${GREEN}[✔] Repository cloned successfully${RESET}"
+                  
+                  # Check for std::format errors and fix if needed
+                  echo -e "${YELLOW}[!] Checking for compilation issues...${RESET}"
+                  if grep -r "std::format" "$HOME/blutter-termux/"; then
+                    echo -e "${YELLOW}[!] Found std::format usage, replacing with fmt::format...${RESET}"
+                    find "$HOME/blutter-termux/" -type f -exec sed -i 's/std::format/fmt::format/g' {} +
+                    echo -e "${GREEN}[✔] Source files modified${RESET}"
+                  fi
+                  
+                  echo -e "${GREEN}[✔] Blutter installed successfully!${RESET}"
+                  echo -e "To run Blutter, execute:"
+                  echo -e "cd ~/blutter-termux && ./blutter"
+                else
+                  echo -e "${RED}[!] Failed to clone repository${RESET}"
+                  echo -e "Please check your internet connection and try again"
+                fi
+
+                sleep 2
+                ;;
+
+            # --- Update ---
+            2)
+                if [ "$installed_version" = "None" ]; then
+                    dialog --msgbox "No Blutter installation found." 8 40
+                    break
+                fi
+                
+                cd "$installed_path"
+                echo -e "${BLUE}[*] Updating Blutter...${RESET}"
+                
+                if git pull; then
+                    echo -e "${GREEN}[✔] Update successful${RESET}"
+                    
+                    # Re-fix std::format if needed after update
+                    echo -e "${YELLOW}[!] Checking for compilation issues after update...${RESET}"
+                    if grep -r "std::format" "$HOME/blutter-termux/"; then
+                        echo -e "${YELLOW}[!] Replacing std::format → fmt::format...${RESET}"
+                        find "$HOME/blutter-termux/" -type f -exec sed -i 's/std::format/fmt::format/g' {} +
+                        echo -e "${GREEN}[✔] Source files modified${RESET}"
                     fi
-                    echo -e "${BLUE}[*] Cloning latest Blutter...${RESET}"
-                    cd $HOME
-                    git clone https://github.com/worawit/blutter
-                    echo -e "${GREEN}[✔] Blutter installed/updated successfully!${RESET}"
+                    
+                    dialog --msgbox "Blutter updated successfully!" 8 45
+                else
+                    echo -e "${RED}[!] Update failed${RESET}"
+                    dialog --msgbox "Update failed! Check your internet connection." 8 40
+                fi
+                ;;
+
+            # --- Reinstall ---
+            3)
+                # Remove existing installation
+                rm -rf "$HOME/blutter-termux"
+                
+                # Install dependencies
+                pkg update -y && pkg upgrade -y
+                pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt
+                pip install requests pyelftools
+
+                echo -e "${BLUE}[*] Reinstalling Blutter...${RESET}"
+                cd $HOME
+                
+                if git clone https://github.com/dedshit/blutter-termux.git; then
+                    echo -e "${GREEN}[✔] Repository cloned successfully${RESET}"
+                    
+                    # Fix std::format if needed
+                    echo -e "${YELLOW}[!] Checking for compilation issues...${RESET}"
+                    if grep -r "std::format" "$HOME/blutter-termux/"; then
+                        echo -e "${YELLOW}[!] Found std::format usage, replacing with fmt::format...${RESET}"
+                        find "$HOME/blutter-termux/" -type f -exec sed -i 's/std::format/fmt::format/g' {} +
+                        echo -e "${GREEN}[✔] Source files modified${RESET}"
+                    fi
+                    
+                    echo -e "${GREEN}[✔] Blutter reinstalled successfully!${RESET}"
+                    echo -e "To run Blutter, execute:"
+                    echo -e "cd ~/blutter-termux && ./blutter"
                     read -p "Press [Enter] to continue..."
-                    ;;
-                2)
-                    echo -e "${BLUE}[*] Removing existing Blutter...${RESET}"
-                    rm -rf "$HOME/blutter-termux"
-                    echo -e "${GREEN}[✔] Blutter removed!${RESET}"
+                else
+                    echo -e "${RED}[!] Failed to clone repository${RESET}"
                     read -p "Press [Enter] to continue..."
-                    ;;
-                3)
-                    ;;
-            esac
-            ;;
+                fi
+                ;;
+
+            # --- Remove ---
+            4)
+                rm -rf "$HOME/blutter-termux"
+                dialog --msgbox "Blutter removed successfully." 8 40
+                ;;
+
+            5)
+                ;;
+        esac
+        ;;
         4)
             # ====[ ARM64 Processor with Custom Output ]====
             if [ -d "$HOME/blutter-termux" ]; then
@@ -588,18 +743,82 @@ done
 # =========[ Refresh Function ]=========
 refresh_script() {
     echo -e "\e[1;32m[+] Refreshing script...\e[0m"
-    # Store current variables that need to persist
-    local current_dir="$PWD"
-    local stored_vars="SCRIPT_VERSION=$SCRIPT_VERSION"
+    echo -e "\e[1;34m[~] Checking for updates first...\e[0m"
     
-    # Clear the screen and re-execute with preserved environment
+    # Check if we have curl available
+    if command -v curl &> /dev/null; then
+        # Force an update check by temporarily changing version to trigger update
+        OLD_VERSION="$SCRIPT_VERSION"
+        SCRIPT_VERSION="0.0.0"  # Force update check to find newer version
+        
+        # Call the update function
+        if check_and_update; then
+            # If update happened, script will have already restarted
+            return 0
+        else
+            # If no update, restore version
+            SCRIPT_VERSION="$OLD_VERSION"
+        fi
+    else
+        echo -e "\e[1;33m[!] curl not available, performing normal refresh...\e[0m"
+    fi
+    
+    # Clear the screen and re-execute
     clear
-    exec env $stored_vars bash "$0" --refreshed "$@"
+    echo -e "\e[1;32m[+] Restarting script...\e[0m"
+    sleep 1
+    exec bash "$0" "$@"
     
     # If exec fails (shouldn't happen)
     echo -e "\e[1;31m[!] Refresh failed\e[0m"
     return 1
 }
+
+# =========[ Updated check_and_update function with refresh support ]=========
+check_and_update() {
+    echo -e "\e[1;34m[~] Checking for updates...\e[0m"
+    
+    # Check if curl is available
+    if ! command -v curl &> /dev/null; then
+        echo -e "\e[1;33m[!] curl not found. Skipping update check.\e[0m"
+        return 1
+    fi
+    
+    # Fetch the latest version from GitHub
+    LATEST_VERSION=$(curl -s "$SCRIPT_URL" | grep -o 'SCRIPT_VERSION="[0-9.]*"' | head -1 | cut -d'"' -f2)
+    
+    if [ -z "$LATEST_VERSION" ]; then
+        echo -e "\e[1;33m[!] Could not check for updates. Continuing with current version.\e[0m"
+        return 1
+    fi
+    
+    if [ "$LATEST_VERSION" != "$SCRIPT_VERSION" ]; then
+        echo -e "\e[1;32m[+] Update found! Current: $SCRIPT_VERSION, Latest: $LATEST_VERSION\e[0m"
+        echo -e "\e[1;34m[~] Downloading update...\e[0m"
+        
+        # Download the updated script
+        curl -s "$SCRIPT_URL" -o "$0.tmp"
+        
+        if [ -f "$0.tmp" ] && [ -s "$0.tmp" ]; then
+            # Make it executable and replace current script
+            chmod +x "$0.tmp"
+            mv "$0.tmp" "$0"
+            echo -e "\e[1;32m[+] Update installed! Restarting script...\e[0m"
+            echo -e "\e[1;33m========================================\e[0m"
+            
+            # Restart the script with the update
+            exec bash "$0" "$@"
+        else
+            echo -e "\e[1;31m[!] Failed to download update. Continuing with current version.\e[0m"
+            rm -f "$0.tmp" 2>/dev/null
+            return 1
+        fi
+    else
+        echo -e "\e[1;32m[✓] You are running the latest version ($SCRIPT_VERSION)\e[0m"
+        return 0
+    fi
+}
+
 # ====[ Install Zsh Add-ons ]=====
 install_zsh_addons() {
     echo -e "\e[1;33m[+] Installing Zsh Add-ons...\e[0m"
@@ -1168,5 +1387,6 @@ backup_wipe_menu() {
 
 # =========[ Start Script ]=========
 check_termux_storage
+check_and_update
 add_alias
 main_menu
