@@ -106,140 +106,218 @@ add_alias() {
 ====[ MOTD Customization ]====
 
 motd_prompt() {
-while true; do
-choice=$(dialog --colors --title " \Z1MOTD Customization\Z0" \
---backtitle "Termux Setup v$SCRIPT_VERSION" \
---menu "Choose an action:" 16 60 4 \
-1 "Color Presets" \
-2 "Change Text Color" \
-3 "Restore Default MOTD" \
-4 "Return to MainMenu" 3>&1 1>&2 2>&3)
+  while true; do
+    choice=$(dialog --colors --title " \Z1MOTD Customization\Z0" \
+      --backtitle "Termux Setup v$SCRIPT_VERSION" \
+      --menu "Choose an action:" 16 60 4 \
+      1 "Color Presets" \
+      2 "Change Text Color" \
+      3 "Restore Default MOTD" \
+      4 "Return to MainMenu" 3>&1 1>&2 2>&3)
 
-case $choice in  
-
-  1)
-# Enhanced Color Presets with better combinations
-preset_choice=$(dialog --colors --title " \Z1Color Presets\Z0" \
-  --backtitle "Termux Setup v$SCRIPT_VERSION" \
-  --menu "Choose a color preset:" 20 60 12 \
-  1 "Sunset \Zb\Z9■\Zn & Purple \Zb\Z5■\Zn" \
-  2 "Ocean \Zb\Z4■\Zn & Teal \Zb\Z6■\Zn" \
-  3 "Forest \Zb\Z2■\Zn & Lime \Zb\Z10■\Zn" \
-  4 "Royal \Zb\Z5■\Zn & Gold \Zb\Z3■\Zn" \
-  5 "Sunrise \Zb\Z1■\Zn & Orange \Zb\Z9■\Zn" \
-  6 "Arctic \Zb\Z6■\Zn & Blue \Zb\Z4■\Zn" \
-  7 "Berry \Zb\Z13■\Zn & Plum \Zb\Z5■\Zn" \
-  8 "Cyan \Zb\Z14■\Zn & Navy \Zb\Z4■\Zn" \
-  9 "Coral \Zb\Z9■\Zn & Rose \Zb\Z13■\Zn" \
-  10 "Slate \Zb\Z8■\Zn & Emerald \Zb\Z10■\Zn" \
-  11 "Rainbow Colors (Random)" \
-  12 "Cancel" 3>&1 1>&2 2>&3)
-
-# Apply preset with better color codes
-case $preset_choice in
-  1) color1='\033[38;5;208m'; color2='\033[38;5;93m' ;;    # Orange & Purple (Sunset)
-  2) color1='\033[38;5;27m'; color2='\033[38;5;43m' ;;     # Deep Blue & Teal (Ocean)
-  3) color1='\033[38;5;28m'; color2='\033[38;5;46m' ;;     # Forest Green & Lime
-  4) color1='\033[38;5;57m'; color2='\033[38;5;220m' ;;    # Royal Purple & Gold
-  5) color1='\033[38;5;196m'; color2='\033[38;5;214m' ;;   # Red & Orange (Sunrise)
-  6) color1='\033[38;5;51m'; color2='\033[38;5;33m' ;;     # Bright Cyan & Blue (Arctic)
-  7) color1='\033[38;5;207m'; color2='\033[38;5;127m' ;;   # Pink & Purple (Berry)
-  8) color1='\033[38;5;45m'; color2='\033[38;5;18m' ;;     # Cyan & Navy
-  9) color1='\033[38;5;209m'; color2='\033[38;5;211m' ;;   # Coral & Rose
-  10) color1='\033[38;5;242m'; color2='\033[38;5;48m' ;;   # Gray & Emerald
-  11)
-    # Rainbow colors with better variety
-    colors=(
-      '\033[38;5;196m'  # Red
-      '\033[38;5;214m'  # Orange
-      '\033[38;5;226m'  # Yellow
-      '\033[38;5;46m'   # Green
-      '\033[38;5;45m'   # Cyan
-      '\033[38;5;57m'   # Purple
-      '\033[38;5;207m'  # Pink
-      '\033[38;5;51m'   # Bright Cyan
-    )
-    color1=${colors[$RANDOM % ${#colors[@]}]}
-    # Ensure color2 is different from color1
-    while [[ "$color2" == "$color1" || -z "$color2" ]]; do
-      color2=${colors[$RANDOM % ${#colors[@]}]}
-    done
-    ;;
-esac
-
-printf "${color1}" >> $PREFIX/etc/motd
-cat << 'EOF' | head -n 3 >> $PREFIX/etc/motd
+    case $choice in
+      1)
+        # Enhanced Color Presets with better combinations
+        preset_choice=$(dialog --colors --title " \Z1Color Presets\Z0" \
+          --backtitle "Termux Setup v$SCRIPT_VERSION" \
+          --menu "Choose a color preset:" 20 60 12 \
+          1 "Sunset \Zb\Z9■\Zn & Purple \Zb\Z5■\Zn" \
+          2 "Ocean \Zb\Z4■\Zn & Teal \Zb\Z6■\Zn" \
+          3 "Forest \Zb\Z2■\Zn & Lime \Zb\Z10■\Zn" \
+          4 "Royal \Zb\Z5■\Zn & Gold \Zb\Z3■\Zn" \
+          5 "Sunrise \Zb\Z1■\Zn & Orange \Zb\Z9■\Zn" \
+          6 "Arctic \Zb\Z6■\Zn & Blue \Zb\Z4■\Zn" \
+          7 "Berry \Zb\Z13■\Zn & Plum \Zb\Z5■\Zn" \
+          8 "Cyan \Zb\Z14■\Zn & Navy \Zb\Z4■\Zn" \
+          9 "Coral \Zb\Z9■\Zn & Rose \Zb\Z13■\Zn" \
+          10 "Slate \Zb\Z8■\Zn & Emerald \Zb\Z10■\Zn" \
+          11 "Rainbow Colors (Random)" \
+          12 "Cancel" 3>&1 1>&2 2>&3)
+        
+        # Check if user cancelled or chose Cancel
+        [ $? -ne 0 ] && continue  # User pressed ESC
+        [ "$preset_choice" -eq 12 ] && continue  # User chose Cancel
+        
+        # Clear the motd file before writing new content
+        > "$PREFIX/etc/motd"
+        
+        # Apply preset with better color codes
+        case $preset_choice in
+          1) 
+            color1='\033[38;5;208m'  # Orange
+            color2='\033[38;5;93m'   # Purple
+            ;;
+          2) 
+            color1='\033[38;5;27m'   # Deep Blue
+            color2='\033[38;5;43m'   # Teal
+            ;;
+          3) 
+            color1='\033[38;5;28m'   # Forest Green
+            color2='\033[38;5;46m'   # Lime
+            ;;
+          4) 
+            color1='\033[38;5;57m'   # Royal Purple
+            color2='\033[38;5;220m'  # Gold
+            ;;
+          5) 
+            color1='\033[38;5;196m'  # Red
+            color2='\033[38;5;214m'  # Orange
+            ;;
+          6) 
+            color1='\033[38;5;51m'   # Bright Cyan
+            color2='\033[38;5;33m'   # Blue
+            ;;
+          7) 
+            color1='\033[38;5;207m'  # Pink
+            color2='\033[38;5;127m'  # Purple
+            ;;
+          8) 
+            color1='\033[38;5;45m'   # Cyan
+            color2='\033[38;5;18m'   # Navy
+            ;;
+          9) 
+            color1='\033[38;5;209m'  # Coral
+            color2='\033[38;5;211m'  # Rose
+            ;;
+          10) 
+            color1='\033[38;5;242m'  # Gray
+            color2='\033[38;5;48m'   # Emerald
+            ;;
+          11)
+            # Rainbow colors with better variety
+            colors=(
+              '\033[38;5;196m'  # Red
+              '\033[38;5;214m'  # Orange
+              '\033[38;5;226m'  # Yellow
+              '\033[38;5;46m'   # Green
+              '\033[38;5;45m'   # Cyan
+              '\033[38;5;57m'   # Purple
+              '\033[38;5;207m'  # Pink
+              '\033[38;5;51m'   # Bright Cyan
+            )
+            color1=${colors[$RANDOM % ${#colors[@]}]}
+            # Ensure color2 is different from color1
+            color2=${colors[$RANDOM % ${#colors[@]}]}
+            while [ "$color2" = "$color1" ]; do
+              color2=${colors[$RANDOM % ${#colors[@]}]}
+            done
+            ;;
+        esac
+        
+        # Write the colored MOTD
+        printf "${color1}" >> "$PREFIX/etc/motd"
+        cat << 'EOF' | head -n 3 >> "$PREFIX/etc/motd"
   ████████╗███████╗██████╗ ███╗   ███╗██╗   ██╗██╗  ██╗
   ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║   ██║╚██╗██╔╝
      ██║   █████╗  ██████╔╝██╔████╔██║██║   ██║ ╚███╔╝
 EOF
-
-printf "${color2}" >> $PREFIX/etc/motd
-cat << 'EOF' | tail -n 3 >> $PREFIX/etc/motd
+        
+        printf "${color2}" >> "$PREFIX/etc/motd"
+        cat << 'EOF' | tail -n 3 >> "$PREFIX/etc/motd"
      ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║   ██║ ██╔██╗
      ██║   ███████╗██║  ██║██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗
      ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝
 EOF
-    printf "\033[0m" >> $PREFIX/etc/motd
-    dialog --msgbox "\n\Z2[✓] Color preset applied successfully!\Zn" 8 50
-    ;;
+        printf "\033[0m" >> "$PREFIX/etc/motd"
+        dialog --msgbox "\n\Z2[✓] Color preset applied successfully!\Zn" 8 50
+        ;;
 
-  2)  
-    # Change Text Color
-    if [ -f "$PREFIX/etc/motd" ]; then
-      color_choice=$(dialog --colors --title " \Z1Select Text Color\Z0" \
-        --backtitle "Termux Setup v$SCRIPT_VERSION" \
-        --menu "Choose a color:" 20 60 12 \
-        1 "Bright Blue \Zb\Z4■\Zn" \
-        2 "Bright Red \Zb\Z1■\Zn" \
-        3 "Bright Yellow \Zb\Z3■\Zn" \
-        4 "Orange \Zb\Z9■\Zn" \
-        5 "Bright Green \Zb\Z2■\Zn" \
-        6 "Cyan \Zb\Z6■\Zn" \
-        7 "White \Zb\Z7■\Zn" \
-        8 "Purple \Zb\Z5■\Zn" \
-        9 "Pink \Zb\Z13■\Zn" \
-        10 "Teal \Zb\Z14■\Zn" \
-        11 "Gray \Zb\Z8■\Zn" \
-        12 "Random Color" \
-        13 "Cancel" 3>&1 1>&2 2>&3)
-      [ $? -ne 0 ] || [ "$color_choice" -eq 13 ] && continue
+      2)  
+        # Change Text Color - Now with the same color options as presets
+        if [ -f "$PREFIX/etc/motd" ]; then
+          color_choice=$(dialog --colors --title " \Z1Select Text Color\Z0" \
+            --backtitle "Termux Setup v$SCRIPT_VERSION" \
+            --menu "Choose a color:" 20 60 14 \
+            1 "Sunset Orange \Zb\Z9■\Zn" \
+            2 "Ocean Blue \Zb\Z4■\Zn" \
+            3 "Forest Green \Zb\Z2■\Zn" \
+            4 "Royal Purple \Zb\Z5■\Zn" \
+            5 "Sunrise Red \Zb\Z1■\Zn" \
+            6 "Arctic Cyan \Zb\Z6■\Zn" \
+            7 "Berry Pink \Zb\Z13■\Zn" \
+            8 "Cyan \Zb\Z14■\Zn" \
+            9 "Coral \Zb\Z9■\Zn" \
+            10 "Slate Gray \Zb\Z8■\Zn" \
+            11 "Teal \Zb\Z6■\Zn" \
+            12 "Lime Green \Zb\Z10■\Zn" \
+            13 "Gold \Zb\Z3■\Zn" \
+            14 "Navy Blue \Zb\Z4■\Zn" \
+            15 "Rose Pink \Zb\Z13■\Zn" \
+            16 "Emerald \Zb\Z10■\Zn" \
+            17 "Rainbow Random" \
+            18 "Cancel" 3>&1 1>&2 2>&3)
+          
+          # Check if user cancelled
+          [ $? -ne 0 ] && continue
+          [ "$color_choice" -eq 18 ] && continue
 
-      get_color() {  
-        case $1 in  
-          1) echo '\033[1;34m' ;;    # Bright Blue  
-          2) echo '\033[1;31m' ;;    # Bright Red  
-          3) echo '\033[1;33m' ;;    # Bright Yellow  
-          4) echo '\033[38;5;208m' ;;# Orange  
-          5) echo '\033[1;32m' ;;    # Bright Green  
-          6) echo '\033[0;36m' ;;    # Cyan  
-          7) echo '\033[0;37m' ;;    # White  
-          8) echo '\033[0;35m' ;;    # Purple  
-          9) echo '\033[38;5;213m' ;;# Pink  
-          10) echo '\033[38;5;14m' ;;# Teal  
-          11) echo '\033[38;5;8m' ;; # Gray  
-          12) echo "\033[38;5;$((RANDOM%230+1))m" ;; # Random  
-          *) echo '\033[0m' ;;       # Default  
-        esac  
-      }
+          get_color() {  
+            case $1 in  
+              1) echo '\033[38;5;208m' ;;    # Sunset Orange
+              2) echo '\033[38;5;27m' ;;     # Ocean Blue
+              3) echo '\033[38;5;28m' ;;     # Forest Green
+              4) echo '\033[38;5;57m' ;;     # Royal Purple
+              5) echo '\033[38;5;196m' ;;    # Sunrise Red
+              6) echo '\033[38;5;51m' ;;     # Arctic Cyan
+              7) echo '\033[38;5;207m' ;;    # Berry Pink
+              8) echo '\033[38;5;45m' ;;     # Cyan
+              9) echo '\033[38;5;209m' ;;    # Coral
+              10) echo '\033[38;5;242m' ;;   # Slate Gray
+              11) echo '\033[38;5;43m' ;;    # Teal
+              12) echo '\033[38;5;46m' ;;    # Lime Green
+              13) echo '\033[38;5;220m' ;;   # Gold
+              14) echo '\033[38;5;18m' ;;    # Navy Blue
+              15) echo '\033[38;5;211m' ;;   # Rose Pink
+              16) echo '\033[38;5;48m' ;;    # Emerald
+              17) 
+                # Random from the rainbow palette
+                rainbow_colors=(
+                  '\033[38;5;196m'  # Red
+                  '\033[38;5;214m'  # Orange
+                  '\033[38;5;226m'  # Yellow
+                  '\033[38;5;46m'   # Green
+                  '\033[38;5;45m'   # Cyan
+                  '\033[38;5;57m'   # Purple
+                  '\033[38;5;207m'  # Pink
+                  '\033[38;5;51m'   # Bright Cyan
+                  '\033[38;5;208m'  # Orange
+                  '\033[38;5;93m'   # Purple
+                  '\033[38;5;27m'   # Deep Blue
+                  '\033[38;5;43m'   # Teal
+                )
+                echo "${rainbow_colors[$RANDOM % ${#rainbow_colors[@]}]}"
+                ;;
+              *) echo '\033[0m' ;;       # Default  
+            esac  
+          }
 
-      color=$(get_color $color_choice)  
-      dialog --infobox "Applying text color..." 5 40  
-      motd_content=$(sed -r "s/\x1B\[[0-9;]*[mK]//g" $PREFIX/etc/motd)  
-      > $PREFIX/etc/motd  
-      printf "${color}%s\033[0m" "$motd_content" > $PREFIX/etc/motd  
-      dialog --msgbox "\n\Z2[✓] MOTD text color changed!\Zn" 7 50  
-    else  
-      dialog --msgbox "\n\Z1[!] No MOTD found to modify!\Zn" 7 50  
-    fi  
-    ;;  
+          color=$(get_color "$color_choice")  
+          dialog --infobox "Applying text color..." 5 40  
+          
+          # Remove existing color codes and reapply new color
+          # Use echo instead of printf to avoid % symbol issues
+          motd_content=$(sed -r "s/\x1B\[[0-9;]*[mK]//g" "$PREFIX/etc/motd")  
+          > "$PREFIX/etc/motd"
+          
+          # Write the color code
+          echo -ne "$color" >> "$PREFIX/etc/motd"
+          # Write the content
+          echo -n "$motd_content" >> "$PREFIX/etc/motd"
+          # Write the reset code
+          echo -ne "\033[0m" >> "$PREFIX/etc/motd"
+          
+          dialog --msgbox "\n\Z2[✓] MOTD text color changed!\Zn" 7 50  
+        else  
+          dialog --msgbox "\n\Z1[!] No MOTD found to modify!\Zn" 7 50  
+        fi  
+        ;;  
 
-  3)  
-    # Restore default MOTD with exact Termux spacing
-    dialog --yesno "\n\Z1Are you sure you want to restore the default MOTD?\Zn" 7 50  
-    if [ $? -eq 0 ]; then  
-      > $PREFIX/etc/motd  
-      cat << 'EOF' > $PREFIX/etc/motd
+      3)  
+        # Restore default MOTD with exact Termux spacing
+        dialog --yesno "\n\Z1Are you sure you want to restore the default MOTD?\Zn" 7 50  
+        if [ $? -eq 0 ]; then  
+          > "$PREFIX/etc/motd"  
+          cat << 'EOF' > "$PREFIX/etc/motd"
 
 Welcome to Termux!
 
@@ -260,19 +338,18 @@ Subscribing to additional repositories:
 
 Report issues at https://termux.com/issues
 EOF
-      dialog --msgbox "\n\Z2[✓] Default MOTD has been restored!\Zn" 7 50
-    else
-      dialog --msgbox "\n\Z3[!] MOTD restoration cancelled.\Zn" 7 50
-    fi
-    ;;
+          dialog --msgbox "\n\Z2[✓] Default MOTD has been restored!\Zn" 7 50
+        else
+          dialog --msgbox "\n\Z3[!] MOTD restoration cancelled.\Zn" 7 50
+        fi
+        ;;
 
-  4)  
-    # Return to MainMenu  
-    break  
-    ;;  
-
-esac
-done
+      4)  
+        # Return to MainMenu  
+        break  
+        ;;  
+    esac
+  done
 }
 
 # =====[ Radare2 Suite ]=====
