@@ -2,7 +2,7 @@
 
 # Script Configuration
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
-SCRIPT_VERSION="2.2.3"
+SCRIPT_VERSION="2.2.4"
 
 # ====[ Auto Update Function ]====
 check_and_update() {
@@ -272,18 +272,18 @@ EOF
               17) 
                 # Random from the rainbow palette
                 rainbow_colors=(
-                  '\033[38;5;196m'  # Red
-                  '\033[38;5;214m'  # Orange
-                  '\033[38;5;226m'  # Yellow
-                  '\033[38;5;46m'   # Green
-                  '\033[38;5;45m'   # Cyan
-                  '\033[38;5;57m'   # Purple
-                  '\033[38;5;207m'  # Pink
-                  '\033[38;5;51m'   # Bright Cyan
-                  '\033[38;5;208m'  # Orange
-                  '\033[38;5;93m'   # Purple
-                  '\033[38;5;27m'   # Deep Blue
-                  '\033[38;5;43m'   # Teal
+                  '\033[38;5;196m'
+                  '\033[38;5;214m'
+                  '\033[38;5;226m'
+                  '\033[38;5;46m'
+                  '\033[38;5;45m'
+                  '\033[38;5;57m'
+                  '\033[38;5;207m'
+                  '\033[38;5;51m'
+                  '\033[38;5;208m'
+                  '\033[38;5;93m'
+                  '\033[38;5;27m'
+                  '\033[38;5;43m'
                 )
                 echo "${rainbow_colors[$RANDOM % ${#rainbow_colors[@]}]}"
                 ;;
@@ -295,15 +295,16 @@ EOF
           dialog --infobox "Applying text color..." 5 40  
           
           # Remove existing color codes and reapply new color
-          # Use echo instead of printf to avoid % symbol issues
           motd_content=$(sed -r "s/\x1B\[[0-9;]*[mK]//g" "$PREFIX/etc/motd")  
           > "$PREFIX/etc/motd"
           
           # Write the color code
           echo -ne "$color" >> "$PREFIX/etc/motd"
-          # Write the content
-          echo -n "$motd_content" >> "$PREFIX/etc/motd"
-          # Write the reset code
+
+          # FIX APPLIED HERE — prevent trailing %  
+          printf "%s\n" "$motd_content" >> "$PREFIX/etc/motd"
+
+          # Reset color
           echo -ne "\033[0m" >> "$PREFIX/etc/motd"
           
           dialog --msgbox "\n\Z2[✓] MOTD text color changed!\Zn" 7 50  
@@ -313,7 +314,6 @@ EOF
         ;;  
 
       3)  
-        # Restore default MOTD with exact Termux spacing
         dialog --yesno "\n\Z1Are you sure you want to restore the default MOTD?\Zn" 7 50  
         if [ $? -eq 0 ]; then  
           > "$PREFIX/etc/motd"  
@@ -344,9 +344,8 @@ EOF
         fi
         ;;
 
-      4)  
-        # Return to MainMenu  
-        break  
+      4)
+        break
         ;;  
     esac
   done
