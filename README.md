@@ -15,7 +15,7 @@ All installations and configurations are neatly contained within your home direc
 # Key Features
 
  * Automated Package Installation
-   Quickly installs all essential tools like Git, Curl, Python, Node.js, and more — so you can dive right into your work without delay.
+   Quickly installs all essential tools like Git, Curl, Python, Node.js, and more so you can dive right into your work without delay.
 
  * Blutter Manager Submenu (New)
    A full submenu dedicated to managing the Blutter reverse engineering toolset. This menu, now called Blutter Manager, handles the installation, update, and removal of all Blutter tools.
