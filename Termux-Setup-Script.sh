@@ -2,39 +2,39 @@
 
 # Script Configuration
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
-SCRIPT_VERSION="2.2.4"
+SCRIPT_VERSION="2.2.6"
 
 # ====[ Auto Update Function ]====
 check_and_update() {
     echo -e "\033[1;34m[~] Checking for updates...\033[0m"
-    
+
     # Check if curl is available
     if ! command -v curl &> /dev/null; then
         echo -e "\033[1;33m[!] curl not found. Skipping update check.\033[0m"
         return
     fi
-    
+
     # Fetch the latest version from GitHub
     LATEST_VERSION=$(curl -s "$SCRIPT_URL" | grep -o 'SCRIPT_VERSION="[0-9.]*"' | head -1 | cut -d'"' -f2)
-    
+
     if [ -z "$LATEST_VERSION" ]; then
         echo -e "\033[1;33m[!] Could not check for updates. Continuing with current version.\033[0m"
         return
     fi
-    
+
     if [ "$LATEST_VERSION" != "$SCRIPT_VERSION" ]; then
         echo -e "\033[1;32m[+] Update found! Current: $SCRIPT_VERSION, Latest: $LATEST_VERSION\033[0m"
         echo -e "\033[1;34m[~] Downloading update...\033[0m"
-        
+
         # Download the updated script
         curl -s "$SCRIPT_URL" -o "$0.tmp"
-        
+
         if [ -f "$0.tmp" ] && [ -s "$0.tmp" ]; then
             # Make it executable and replace current script
             chmod +x "$0.tmp"
             mv "$0.tmp" "$0"
             echo -e "\033[1;32m[+] Update installed! Restarting script...\033[0m"
-            
+
             # Restart the script with the update
             exec "$0"
         else
@@ -133,14 +133,14 @@ motd_prompt() {
           10 "Slate \Zb\Z8■\Zn & Emerald \Zb\Z10■\Zn" \
           11 "Rainbow Colors (Random)" \
           12 "Cancel" 3>&1 1>&2 2>&3)
-        
+
         # Check if user cancelled or chose Cancel
         [ $? -ne 0 ] && continue  # User pressed ESC
         [ "$preset_choice" -eq 12 ] && continue  # User chose Cancel
-        
+
         # Clear the motd file before writing new content
         > "$PREFIX/etc/motd"
-        
+
         # Apply preset with better color codes
         case $preset_choice in
           1) 
@@ -152,7 +152,7 @@ motd_prompt() {
             color2='\033[38;5;43m'   # Teal
             ;;
           3) 
-            color1='\033[38;5;28m'   # Forest Green
+            color1='\033[38;5;48m'   # Forest Green
             color2='\033[38;5;46m'   # Lime
             ;;
           4) 
@@ -203,7 +203,7 @@ motd_prompt() {
             done
             ;;
         esac
-        
+
         # Write the colored MOTD
         printf "${color1}" >> "$PREFIX/etc/motd"
         cat << 'EOF' | head -n 3 >> "$PREFIX/etc/motd"
@@ -211,7 +211,7 @@ motd_prompt() {
   ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║   ██║╚██╗██╔╝
      ██║   █████╗  ██████╔╝██╔████╔██║██║   ██║ ╚███╔╝
 EOF
-        
+
         printf "${color2}" >> "$PREFIX/etc/motd"
         cat << 'EOF' | tail -n 3 >> "$PREFIX/etc/motd"
      ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║   ██║ ██╔██╗
@@ -246,7 +246,7 @@ EOF
             16 "Emerald \Zb\Z10■\Zn" \
             17 "Rainbow Random" \
             18 "Cancel" 3>&1 1>&2 2>&3)
-          
+
           # Check if user cancelled
           [ $? -ne 0 ] && continue
           [ "$color_choice" -eq 18 ] && continue
@@ -293,11 +293,11 @@ EOF
 
           color=$(get_color "$color_choice")  
           dialog --infobox "Applying text color..." 5 40  
-          
+
           # Remove existing color codes and reapply new color
           motd_content=$(sed -r "s/\x1B\[[0-9;]*[mK]//g" "$PREFIX/etc/motd")  
           > "$PREFIX/etc/motd"
-          
+
           # Write the color code
           echo -ne "$color" >> "$PREFIX/etc/motd"
 
@@ -306,7 +306,7 @@ EOF
 
           # Reset color
           echo -ne "\033[0m" >> "$PREFIX/etc/motd"
-          
+
           dialog --msgbox "\n\Z2[✓] MOTD text color changed!\Zn" 7 50  
         else  
           dialog --msgbox "\n\Z1[!] No MOTD found to modify!\Zn" 7 50  
@@ -361,7 +361,7 @@ radare2_suite() {
     ORANGE='\033[38;5;208m'
     BLUE='\033[1;34m'
     RESET='\033[0m'
-    
+
     # Display alphabetized menu
     choice=$(dialog --title "Radare2 Suite" \
       --menu "Choose an option:" 20 60 6 \
@@ -370,7 +370,7 @@ radare2_suite() {
       3 "Install HBCTOOL" \
       4 "Install Radare2" \
       5 "Return to MainMenu" 3>&1 1>&2 2>&3)
-    
+
     clear
     case "$choice" in
       1)
@@ -392,7 +392,7 @@ radare2_suite() {
       2)
         echo -e "${BLUE}[+] Running HBCTool Disasm...${RESET}"
         rm -rf "/storage/emulated/0/Shite/apks/disasm" 2>/dev/null
-        
+
         if [ -f "/storage/emulated/0/Shite/apks/index.android.bundle" ]; then
           echo -e "${YELLOW}[*] Processing bundle file...${RESET}"
           if hbctool disasm "/storage/emulated/0/Shite/apks/index.android.bundle" "/storage/emulated/0/Shite/apks/disasm" >/dev/null 2>&1; then
@@ -410,7 +410,7 @@ radare2_suite() {
         ;;
       3)
         echo -e "${BLUE}[+] Installing Hbctool...${RESET}"
-        
+
         if ! command -v wget &> /dev/null; then
           echo -e "${ORANGE}[↻] Installing wget...${RESET}"
           pkg install -y wget
@@ -427,7 +427,7 @@ radare2_suite() {
           sleep 3
           continue
         fi
-        
+
         echo -e "${YELLOW}[*] Downloading hbclabel.py...${RESET}"
         if wget -q -O "$HOME/hbclabel.py" https://raw.githubusercontent.com/Kirlif/Python-Stuff/main/hbclabel.py; then
           chmod +x "$HOME/hbclabel.py"
@@ -439,7 +439,7 @@ radare2_suite() {
           sleep 3
           continue
         fi
-        
+
         echo -e "${GREEN}[✔] HBCTool installation completed!${RESET}"
         sleep 5
         ;;
@@ -459,374 +459,244 @@ radare2_suite() {
 # =====[ Blutter Suite ]=====
 blutter_suite() {
 
-# Define color codes
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-YELLOW='\033[1;33m'
-ORANGE='\033[38;5;208m'
-BLUE='\033[1;34m'
-RESET='\033[0m'
+    # Define color codes
+    RED='\033[1;31m'
+    GREEN='\033[1;32m'
+    YELLOW='\033[1;33m'
+    ORANGE='\033[38;5;208m'
+    BLUE='\033[1;34m'
+    RESET='\033[0m'
 
-while true; do
-    local choice
-    if [ -d "$HOME/blutter-termux" ]; then
-        choice=$(dialog --title "Blutter Suite" \
-            --menu "Blutter is installed. Choose an option:" 15 50 5 \
-            1 "APKEditor" \
-            2 "Hermes (Decompile & Disasm)" \
-            3 "Install/Update/Remove Blutter" \
-            4 "Process arm64-v8a (Auto)" \
-            5 "Return to MainMenu" 3>&1 1>&2 2>&3)
-    else
-        choice=$(dialog --title "Blutter Suite" \
-            --menu "Blutter not detected. Choose an option:" 15 50 5 \
-            1 "APKEditor" \
-            2 "Hermes (Decompile & Disasm)" \
-            3 "Install/Update/Remove Blutter" \
-            4 "Process arm64-v8a (Auto)" \
-            5 "Return to MainMenu" 3>&1 1>&2 2>&3)
-    fi
+    while true; do
+        local choice
+        if [ -d "$HOME/blutter-termux" ]; then
+            choice=$(dialog --title "Blutter Suite" \
+                --menu "Blutter is installed. Choose an option:" 15 50 5 \
+                1 "APKEditor" \
+                2 "Hermes (Decompile & Disasm)" \
+                3 "Blutter Manager" \
+                4 "Process arm64-v8a (Auto)" \
+                5 "Return to MainMenu" 3>&1 1>&2 2>&3)
+        else
+            choice=$(dialog --title "Blutter Suite" \
+                --menu "Blutter not detected. Choose an option:" 15 50 5 \
+                1 "APKEditor" \
+                2 "Hermes (Decompile & Disasm)" \
+                3 "Blutter Manager" \
+                4 "Process arm64-v8a (Auto)" \
+                5 "Return to MainMenu" 3>&1 1>&2 2>&3)
+        fi
 
-    clear
-    case "$choice" in
-        1)
-            # =====[ APKEditor Implementation ]=====
-            apk_editor_loop() {
-                while true; do
-                    # Check/install APKEditor
+        clear
+        case "$choice" in
+            1)
+                # =====[ APKEditor Implementation ]=====
+                apk_editor_loop() {
+                    # Ensure APKEditor exists
                     if [ ! -f "/storage/emulated/0/Shite/APKEditor.jar" ]; then
                         echo -e "${BLUE}[*] Downloading APKEditor v1.4.5...${RESET}"
-                        mkdir -p $HOME/temp_downloads
-                        cd $HOME/temp_downloads
-
+                        mkdir -p "$HOME/temp_downloads"
+                        cd "$HOME/temp_downloads"
                         if wget -q https://github.com/REandroid/APKEditor/releases/download/V1.4.5/APKEditor-1.4.5.jar; then
                             mkdir -p /storage/emulated/0/Shite
-                            if mv APKEditor-1.4.5.jar /storage/emulated/0/Shite/APKEditor.jar; then
-                                echo -e "${GREEN}[✔] APKEditor installed${RESET}"
-                            else
-                                echo -e "${RED}[!] Failed to move APKEditor${RESET}"
-                                cd $HOME && rm -rf $HOME/temp_downloads
-                                return 1
-                            fi
+                            mv APKEditor-1.4.5.jar /storage/emulated/0/Shite/APKEditor.jar
                         else
                             echo -e "${RED}[!] Download failed${RESET}"
-                            cd $HOME && rm -rf $HOME/temp_downloads
+                            cd "$HOME" && rm -rf "$HOME/temp_downloads"
                             return 1
                         fi
-
-                        cd $HOME && rm -rf $HOME/temp_downloads
+                        cd "$HOME" && rm -rf "$HOME/temp_downloads"
                     fi
 
-                    # Check Java tools
+                    # Ensure Java tools
                     if ! command -v keytool &> /dev/null || ! command -v jarsigner &> /dev/null; then
-                        echo -e "${BLUE}[*] Installing Java tools...${RESET}"
                         pkg install -y openjdk-17
                     fi
 
-                    # Auto-detect APK
+                    # Auto-detect APKS/XAPK
                     auto_detect_apk() {
                         local apk_dir="/storage/emulated/0/Shite/apks"
                         mkdir -p "$apk_dir"
-                        local apk_file=$(find "$apk_dir" -maxdepth 1 -type f \( -name "*.apk" -o -name "*.apks" -o -name "*.xapk" \) -print -quit)
-                        [ -z "$apk_file" ] && return 1
-                        basename "${apk_file%.*}"
+                        find "$apk_dir" -maxdepth 1 -type f \( -name "*.apk" -o -name "*.apks" -o -name "*.xapk" \) -print -quit
                     }
 
-                    apk_name=$(auto_detect_apk) || {
-                        echo -e "${RED}[!] No APK files found in /storage/emulated/0/Shite/apks/${RESET}"
-                        read -p "Press [Enter] to continue..."
-                        continue
-                    }
+                    apk_file=$(auto_detect_apk)
+                    if [ -z "$apk_file" ]; then
+                        echo -e "${RED}[!] No APKS/XAPK files found in /storage/emulated/0/Shite/apks/. Returning to Blutter Suite...${RESET}"
+                        sleep 2
+                        return
+                    fi
 
-                    # APKEditor menu
-                    apkeditor_choice=$(dialog --title "APKEditor (${apk_name})" \
-                        --menu "Select operation:" 15 60 6 \
-                        1 "Merge APKS/XAPK → APK" \
-                        2 "Decompile APK" \
-                        3 "Compile APK" \
-                        4 "Refactor APK" \
-                        5 "Protect APK" \
-                        6 "Back" 3>&1 1>&2 2>&3)
+                    apk_name=$(basename "${apk_file%.*}")
 
-                    case "$apkeditor_choice" in
+                    while true; do
+                        apkeditor_choice=$(dialog --title "APKEditor (${apk_name})" \
+                            --menu "Select operation:" 15 60 6 \
+                            1 "Merge APKS/XAPK → APK" \
+                            2 "Decompile APK" \
+                            3 "Compile APK" \
+                            4 "Refactor APK" \
+                            5 "Protect APK" \
+                            6 "Back" 3>&1 1>&2 2>&3)
+
+                        case "$apkeditor_choice" in
+                            1)
+                                cd /storage/emulated/0/Shite/
+                                rm -f "apks/$apk_name.apk" 2>/dev/null
+                                java -jar APKEditor.jar m -i "apks/$apk_name.apks" -o "apks/$apk_name.apk"
+                                ;;
+                            2)
+                                cd /storage/emulated/0/Shite/
+                                rm -rf "apks/$apk_name/" 2>/dev/null
+                                java -jar APKEditor.jar d -i "apks/$apk_name.apk" -o "apks/$apk_name/"
+                                ;;
+                            3)
+                                cd /storage/emulated/0/Shite/
+                                rm -f "apks/$apk_name.apk" 2>/dev/null
+                                java -jar APKEditor.jar b -i "apks/$apk_name/" -o "apks/$apk_name.apk"
+                                ;;
+                            4)
+                                cd /storage/emulated/0/Shite/
+                                rm -f "apks/${apk_name}_refactored.apk" 2>/dev/null
+                                java -jar APKEditor.jar x -i "apks/$apk_name.apk" -o "apks/${apk_name}_refactored.apk"
+                                ;;
+                            5)
+                                cd /storage/emulated/0/Shite/
+                                rm -f "apks/${apk_name}_protected.apk" 2>/dev/null
+                                java -jar APKEditor.jar p -i "apks/$apk_name.apk" -o "apks/${apk_name}_protected.apk"
+                                ;;
+                            6)
+                                return
+                                ;;
+                        esac
+
+                        # Re-check if APK exists
+                        apk_file=$(auto_detect_apk)
+                        if [ -z "$apk_file" ]; then
+                            echo -e "${RED}[!] APK disappeared. Returning to Blutter Suite...${RESET}"
+                            sleep 2
+                            return
+                        fi
+                        apk_name=$(basename "${apk_file%.*}")
+                    done
+                }
+                apk_editor_loop
+                ;;
+            2)
+                if [ -d "$HOME/blutter-termux" ]; then
+                    pkg install -y python pip clang
+                    cd "$HOME"
+                    git clone https://github.com/P1sec/hermes-dec.git
+                    pip install --upgrade git+https://github.com/P1sec/hermes-dec.git
+                else
+                    echo -e "${RED}[!] Install Blutter first${RESET}"
+                fi
+                read -p "Press [Enter] to continue..."
+                ;;
+            3)
+                # =====[ Blutter Manager ]=====
+                while true; do
+                    if [ -d "$HOME/blutter-termux" ]; then
+                        installed_version="Dedshit"
+                        installed_path="$HOME/blutter-termux"
+                    else
+                        installed_version="None"
+                        installed_path=""
+                    fi
+
+                    blutter_option=$(dialog --title "Blutter Manager (Installed: $installed_version)" \
+                        --menu "Select an option:" 15 60 5 \
+                        1 "Fresh Install Blutter" \
+                        2 "Check for Update Blutter" \
+                        3 "Reprovision Blutter" \
+                        4 "Nuke Blutter Completely" \
+                        5 "Return To Blutter Suite" 3>&1 1>&2 2>&3)
+
+                    clear
+
+                    case "$blutter_option" in
                         1)
-                            cd /storage/emulated/0/Shite/
-                            rm -f "apks/$apk_name.apk" 2>/dev/null
-                            java -jar APKEditor.jar m -i "apks/$apk_name.apks" -o "apks/$apk_name.apk"
-                            read -p "Press [Enter] to continue..."
+                            if [ "$installed_version" != "None" ]; then
+                                dialog --msgbox "Blutter is already installed.\nUse Update or Reinstall." 10 50
+                            else
+                                pkg update -y && pkg upgrade -y
+                                pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt
+                                pip install requests pyelftools
+                                cd "$HOME"
+                                git clone https://github.com/dedshit/blutter-termux.git
+                            fi
                             ;;
                         2)
-                            cd /storage/emulated/0/Shite/
-                            rm -rf "apks/$apk_name/" 2>/dev/null
-                            java -jar APKEditor.jar d -i "apks/$apk_name.apk" -o "apks/$apk_name/"
-                            read -p "Press [Enter] to continue..."
+                            if [ "$installed_version" = "None" ]; then
+                                dialog --msgbox "No Blutter installation found." 8 40
+                            else
+                                cd "$installed_path"
+                                git pull
+                            fi
                             ;;
                         3)
-                            cd /storage/emulated/0/Shite/
-                            rm -f "apks/$apk_name.apk" 2>/dev/null
-                            java -jar APKEditor.jar b -i "apks/$apk_name/" -o "apks/$apk_name.apk"
-                            read -p "Press [Enter] to continue..."
+                            rm -rf "$HOME/blutter-termux"
+                            cd "$HOME"
+                            pkg update -y && pkg upgrade -y
+                            pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt
+                            pip install requests pyelftools
+                            git clone https://github.com/dedshit/blutter-termux.git
                             ;;
                         4)
-                            cd /storage/emulated/0/Shite/
-                            rm -f "apks/${apk_name}_refactored.apk" 2>/dev/null
-                            java -jar APKEditor.jar x -i "apks/$apk_name.apk" -o "apks/${apk_name}_refactored.apk"
-                            read -p "Press [Enter] to continue..."
+                            rm -rf "$HOME/blutter-termux"
+                            dialog --msgbox "Blutter removed successfully." 8 40
                             ;;
                         5)
-                            cd /storage/emulated/0/Shite/
-                            rm -f "apks/${apk_name}_protected.apk" 2>/dev/null
-                            java -jar APKEditor.jar p -i "apks/$apk_name.apk" -o "apks/${apk_name}_protected.apk"
-                            read -p "Press [Enter] to continue..."
-                            ;;
-                        6)
-                            return
+                            break
                             ;;
                     esac
                 done
-            }
-            apk_editor_loop
-            ;;
-        2)
-            # =======[ Hermes Decompiler ]=======
-            if [ -d "$HOME/blutter-termux" ]; then
-                echo -e "${BLUE}[*] Installing Hermes...${RESET}"
-                pkg install -y python pip clang
-                cd $HOME
-                git clone https://github.com/P1sec/hermes-dec.git
-                pip install --upgrade git+https://github.com/P1sec/hermes-dec.git
-                echo -e "${GREEN}[✔] Hermes installed${RESET}"
-            else
-                echo -e "${RED}[!] Install Blutter first${RESET}"
-            fi
-            read -p "Press [Enter] to continue..."
-            ;;
-        3)
-        # =====[ Blutter Manager (Dedshit Only) ]======
-
-        # Detect installation
-        if [ -d "$HOME/blutter-termux" ]; then
-            installed_version="Dedshit"
-            installed_path="$HOME/blutter-termux"
-        else
-            installed_version="None"
-            installed_path=""
-        fi
-
-        blutter_option=$(dialog --title "Blutter Manager (Installed: $installed_version)" \
-            --menu "Select an option:" 15 60 5 \
-            1 "Install Blutter" \
-            2 "Update Blutter" \
-            3 "Reinstall Blutter" \
-            4 "Remove Blutter" \
-            5 "Return" 3>&1 1>&2 2>&3)
-
-        clear
-
-        case "$blutter_option" in
-
-            # --- Install Blutter ---
-            1)
-                if [ "$installed_version" != "None" ]; then
-                    dialog --msgbox "Blutter is already installed.\nUse Update or Reinstall." 10 50
-                    break
-                fi
-
-                echo -e "${BLUE}[*] Starting Blutter installation...${RESET}"
-                
-                # Update system packages
-                echo -e "${YELLOW}[!] Updating system packages...${RESET}"
-                pkg update -y && pkg upgrade -y
-                
-                # Install dependencies
-                echo -e "${YELLOW}[!] Installing dependencies...${RESET}"
-                pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt
-                
-                # Install Python packages
-                echo -e "${YELLOW}[!] Installing Python dependencies...${RESET}"
-                pip install requests pyelftools
-                
-                # Clone repository
-                echo -e "${YELLOW}[!] Cloning Blutter repository...${RESET}"
-                cd $HOME
-                if git clone https://github.com/dedshit/blutter-termux.git; then
-                  echo -e "${GREEN}[✔] Repository cloned successfully${RESET}"
-                  
-                  # Check for std::format errors and fix if needed
-                  echo -e "${YELLOW}[!] Checking for compilation issues...${RESET}"
-                  if grep -r "std::format" "$HOME/blutter-termux/"; then
-                    echo -e "${YELLOW}[!] Found std::format usage, replacing with fmt::format...${RESET}"
-                    find "$HOME/blutter-termux/" -type f -exec sed -i 's/std::format/fmt::format/g' {} +
-                    echo -e "${GREEN}[✔] Source files modified${RESET}"
-                  fi
-                  
-                  echo -e "${GREEN}[✔] Blutter installed successfully!${RESET}"
-                  echo -e "To run Blutter, execute:"
-                  echo -e "cd ~/blutter-termux && ./blutter"
-                else
-                  echo -e "${RED}[!] Failed to clone repository${RESET}"
-                  echo -e "Please check your internet connection and try again"
-                fi
-
-                sleep 2
                 ;;
-
-            # --- Update ---
-            2)
-                if [ "$installed_version" = "None" ]; then
-                    dialog --msgbox "No Blutter installation found." 8 40
-                    break
-                fi
-                
-                cd "$installed_path"
-                echo -e "${BLUE}[*] Updating Blutter...${RESET}"
-                
-                if git pull; then
-                    echo -e "${GREEN}[✔] Update successful${RESET}"
-                    
-                    # Re-fix std::format if needed after update
-                    echo -e "${YELLOW}[!] Checking for compilation issues after update...${RESET}"
-                    if grep -r "std::format" "$HOME/blutter-termux/"; then
-                        echo -e "${YELLOW}[!] Replacing std::format → fmt::format...${RESET}"
-                        find "$HOME/blutter-termux/" -type f -exec sed -i 's/std::format/fmt::format/g' {} +
-                        echo -e "${GREEN}[✔] Source files modified${RESET}"
-                    fi
-                    
-                    dialog --msgbox "Blutter updated successfully!" 8 45
-                else
-                    echo -e "${RED}[!] Update failed${RESET}"
-                    dialog --msgbox "Update failed! Check your internet connection." 8 40
-                fi
-                ;;
-
-            # --- Reinstall ---
-            3)
-                # Remove existing installation
-                rm -rf "$HOME/blutter-termux"
-                
-                # Install dependencies
-                pkg update -y && pkg upgrade -y
-                pkg install -y git cmake ninja build-essential pkg-config libicu capstone fmt
-                pip install requests pyelftools
-
-                echo -e "${BLUE}[*] Reinstalling Blutter...${RESET}"
-                cd $HOME
-                
-                if git clone https://github.com/dedshit/blutter-termux.git; then
-                    echo -e "${GREEN}[✔] Repository cloned successfully${RESET}"
-                    
-                    # Fix std::format if needed
-                    echo -e "${YELLOW}[!] Checking for compilation issues...${RESET}"
-                    if grep -r "std::format" "$HOME/blutter-termux/"; then
-                        echo -e "${YELLOW}[!] Found std::format usage, replacing with fmt::format...${RESET}"
-                        find "$HOME/blutter-termux/" -type f -exec sed -i 's/std::format/fmt::format/g' {} +
-                        echo -e "${GREEN}[✔] Source files modified${RESET}"
-                    fi
-                    
-                    echo -e "${GREEN}[✔] Blutter reinstalled successfully!${RESET}"
-                    echo -e "To run Blutter, execute:"
-                    echo -e "cd ~/blutter-termux && ./blutter"
-                    read -p "Press [Enter] to continue..."
-                else
-                    echo -e "${RED}[!] Failed to clone repository${RESET}"
-                    read -p "Press [Enter] to continue..."
-                fi
-                ;;
-
-            # --- Remove ---
             4)
-                rm -rf "$HOME/blutter-termux"
-                dialog --msgbox "Blutter removed successfully." 8 40
-                ;;
+                if [ -d "$HOME/blutter-termux" ]; then
+                    ARM64_DIR="/storage/emulated/0/Shite/apks/arm64-v8a"
+                    OUT_DIR="/storage/emulated/0/Shite/apks/out-dir"
 
+                    if [ ! -f "$ARM64_DIR/libapp.so" ]; then
+                        echo -e "${RED}[!] libapp.so missing${RESET}"
+                        read -p "Press [Enter] to continue..."
+                        continue
+                    fi
+                    if [ ! -f "$ARM64_DIR/libflutter.so" ]; then
+                        echo -e "${RED}[!] libflutter.so missing${RESET}"
+                        read -p "Press [Enter] to continue..."
+                        continue
+                    fi
+
+                    rm -rf "$OUT_DIR" 2>/dev/null
+                    mkdir -p "$OUT_DIR"
+
+                    cd "$HOME/blutter-termux"
+                    python blutter.py "$ARM64_DIR" "$OUT_DIR" >/dev/null 2>&1
+                    read -p "Press [Enter] to continue..."
+                else
+                    echo -e "${RED}[!] Install Blutter first${RESET}"
+                    read -p "Press [Enter] to continue..."
+                fi
+                ;;
             5)
+                return
                 ;;
         esac
-        ;;
-        4)
-            # ====[ ARM64 Processor with Custom Output ]====
-            if [ -d "$HOME/blutter-termux" ]; then
-                ARM64_DIR="/storage/emulated/0/Shite/apks/arm64-v8a"
-                OUT_DIR="/storage/emulated/0/Shite/apks/out-dir"
-
-                if [ ! -f "$ARM64_DIR/libapp.so" ]; then
-                    echo -e "${RED}[!] libapp.so missing in arm64-v8a${RESET}"
-                    read -p "Press [Enter] to continue..."
-                    continue
-                fi
-
-                if [ ! -f "$ARM64_DIR/libflutter.so" ]; then
-                    echo -e "${RED}[!] libflutter.so missing in arm64-v8a${RESET}"
-                    read -p "Press [Enter] to continue..."
-                    continue
-                fi
-
-                rm -rf "$OUT_DIR" 2>/dev/null
-                mkdir -p "$OUT_DIR"
-
-                echo -e "${GREEN}Already up to date.${RESET}"
-
-                # Get Dart version info
-                DART_VER=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Dart version" | cut -d' ' -f3-)
-                SNAPSHOT_HASH=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Snapshot hash" | cut -d' ' -f3)
-                FLAGS=$(strings "$ARM64_DIR/libflutter.so" | grep -m1 "Build flags" | cut -d':' -f2- | sed 's/^ //')
-
-                echo -e "Dart version: ${DART_VER}, Snapshot: ${SNAPSHOT_HASH}, Target: android arm64"
-                echo -e "flags: ${FLAGS}"
-                echo -e "Cannot find null-safety text. Setting null_safety to true."
-
-                # Use actual memory addresses from libflutter
-                BASE_ADDR=$(readelf -W -S "$ARM64_DIR/libflutter.so" | grep .text | awk '{print $5}')
-                echo -e "libapp is loaded at 0x${BASE_ADDR}"
-                echo -e "Dart heap at 0x7000000000"
-
-                echo -e "Analyzing the application"
-                echo -e "Dumping Object Pool"
-                echo -e "Generating application assemblies"
-                echo -e "Generating radare2 script"
-                echo -e "Generating IDA script"
-                echo -e "Generating Frida script"
-
-                cd "$HOME/blutter-termux"
-                python blutter.py "$ARM64_DIR" "$OUT_DIR" >/dev/null 2>&1
-
-                rm -f "$OUT_DIR/blutter_frida.js" 2>/dev/null
-                rm -f "$OUT_DIR/ida_script.py" 2>/dev/null
-                rm -f "$OUT_DIR/r2_script.r2" 2>/dev/null
-                rm -f "$OUT_DIR/objs.txt" 2>/dev/null
-                rm -f "$OUT_DIR/pp.txt" 2>/dev/null
-
-                mv "$OUT_DIR"/*.js "$OUT_DIR/blutter_frida.js" 2>/dev/null
-                mv "$OUT_DIR"/*.py "$OUT_DIR/ida_script.py" 2>/dev/null
-                mv "$OUT_DIR"/*.r2 "$OUT_DIR/r2_script.r2" 2>/dev/null
-                mv "$OUT_DIR"/object_pool.txt "$OUT_DIR/objs.txt" 2>/dev/null
-                mv "$OUT_DIR"/preprocessed.txt "$OUT_DIR/pp.txt" 2>/dev/null
-
-                echo -e "${GREEN}done${RESET}"
-                read -p "Press [Enter] to continue..."
-            else
-                echo -e "${RED}[!] Install Blutter first (option 3)${RESET}"
-                read -p "Press [Enter] to continue..."
-            fi
-            ;;
-        5)
-            return
-            ;;
-    esac
-done
+    done
 }
 
 # =========[ Refresh Function ]=========
 refresh_script() {
     echo -e "\e[1;32m[+] Refreshing script...\e[0m"
     echo -e "\e[1;34m[~] Checking for updates first...\e[0m"
-    
+
     # Check if we have curl available
     if command -v curl &> /dev/null; then
         # Force an update check by temporarily changing version to trigger update
         OLD_VERSION="$SCRIPT_VERSION"
         SCRIPT_VERSION="0.0.0"  # Force update check to find newer version
-        
+
         # Call the update function
         if check_and_update; then
             # If update happened, script will have already restarted
@@ -838,13 +708,13 @@ refresh_script() {
     else
         echo -e "\e[1;33m[!] curl not available, performing normal refresh...\e[0m"
     fi
-    
+
     # Clear the screen and re-execute
     clear
     echo -e "\e[1;32m[+] Restarting script...\e[0m"
     sleep 1
     exec bash "$0" "$@"
-    
+
     # If exec fails (shouldn't happen)
     echo -e "\e[1;31m[!] Refresh failed\e[0m"
     return 1
@@ -853,35 +723,35 @@ refresh_script() {
 # =========[ Updated check_and_update function with refresh support ]=========
 check_and_update() {
     echo -e "\e[1;34m[~] Checking for updates...\e[0m"
-    
+
     # Check if curl is available
     if ! command -v curl &> /dev/null; then
         echo -e "\e[1;33m[!] curl not found. Skipping update check.\e[0m"
         return 1
     fi
-    
+
     # Fetch the latest version from GitHub
     LATEST_VERSION=$(curl -s "$SCRIPT_URL" | grep -o 'SCRIPT_VERSION="[0-9.]*"' | head -1 | cut -d'"' -f2)
-    
+
     if [ -z "$LATEST_VERSION" ]; then
         echo -e "\e[1;33m[!] Could not check for updates. Continuing with current version.\e[0m"
         return 1
     fi
-    
+
     if [ "$LATEST_VERSION" != "$SCRIPT_VERSION" ]; then
         echo -e "\e[1;32m[+] Update found! Current: $SCRIPT_VERSION, Latest: $LATEST_VERSION\e[0m"
         echo -e "\e[1;34m[~] Downloading update...\e[0m"
-        
+
         # Download the updated script
         curl -s "$SCRIPT_URL" -o "$0.tmp"
-        
+
         if [ -f "$0.tmp" ] && [ -s "$0.tmp" ]; then
             # Make it executable and replace current script
             chmod +x "$0.tmp"
             mv "$0.tmp" "$0"
             echo -e "\e[1;32m[+] Update installed! Restarting script...\e[0m"
             echo -e "\e[1;33m========================================\e[0m"
-            
+
             # Restart the script with the update
             exec bash "$0" "$@"
         else
@@ -925,13 +795,12 @@ main_menu() {
             0 "File Manager" \
             1 "Blutter Suite" \
             2 "Radare2 Suite" \
-            3 "Dex2c Suite" \
-            4 "Backup Tools" \
-            5 "MOTD Settings" \
-            6 "Install Zsh Add-ons" \
-            7 "Python Packages + Plugins" \
-            8 "Refresh/Update Script" \
-            9 "Exit" 3>&1 1>&2 2>&3)
+            3 "Backup Tools" \
+            4 "MOTD Settings" \
+            5 "Install Zsh Add-ons" \
+            6 "Python Packages + Plugins" \
+            7 "Refresh/Update Script" \
+            8 "Exit" 3>&1 1>&2 2>&3)
 
         clear
         case "$main_choice" in
@@ -945,18 +814,15 @@ main_menu() {
                 radare2_suite 
                 ;;
             3) 
-                dex2c_menu 
-                ;;
-            4) 
                 backup_wipe_menu 
                 ;;
-            5) 
+            4) 
                 motd_prompt 
                 ;;
-            6) 
+            5) 
                 install_zsh_addons 
                 ;;
-            7)
+            6)
                 echo -e "\e[1;33m[+] Installing packages...\e[0m"
                 yes | pkg update -y && yes | pkg upgrade -y
                 yes | pkg install -y git curl wget nano vim ruby php nodejs golang clang \
@@ -966,11 +832,10 @@ main_menu() {
                 echo -e "\e[1;32m[✓] Installation complete!\e[0m"
                 sleep 2
                 ;;
-            8)
-                # Combined Refresh and Update functionality
+            7)
                 echo -e "\e[1;33m[*] Checking for script updates...\e[0m"
                 remote_version=$(curl -s "$SCRIPT_URL" | grep -m1 "SCRIPT_VERSION=" | cut -d'"' -f2)
-                
+
                 if [ "$remote_version" != "$SCRIPT_VERSION" ]; then
                     echo -e "\e[1;32m[+] Update found ($remote_version), updating...\e[0m"
                     if curl -s "$SCRIPT_URL" > "$0.tmp"; then
@@ -990,7 +855,7 @@ main_menu() {
                     exec "$0" "--refreshed"
                 fi
                 ;;
-            9)
+            8)
                 echo "Exiting..."
                 exit 0
                 ;;
@@ -1002,27 +867,23 @@ main_menu() {
 # =========[ File Explorer ]=========
 file_explorer() {
     local current_path="$HOME"
-    
+
     while true; do
-        # Build the file list
         local items=()
         if [ "$current_path" != "/" ]; then
             items+=(".." "Go Up")
         fi
-        
-        # Add directories (sorted)
+
         while IFS= read -r dir; do
             [ -z "$dir" ] && continue
             items+=("$dir/" "DIR")
         done < <(find "$current_path" -maxdepth 1 -type d ! -path "$current_path" -printf "%f\n" | sort)
-        
-        # Add files (sorted)
+
         while IFS= read -r file; do
             [ -z "$file" ] && continue
             items+=("$file" "FILE")
         done < <(find "$current_path" -maxdepth 1 -type f -printf "%f\n" | sort)
 
-        # Show dialog with action buttons
         choice=$(dialog --clear \
             --backtitle "File Explorer" \
             --title " $current_path " \
@@ -1034,12 +895,11 @@ file_explorer() {
             20 60 20 \
             "${items[@]}" \
             3>&1 1>&2 2>&3)
-            
+
         ret=$?
-        
-        # Handle button presses
+
         case $ret in
-            0) # Open pressed
+            0) 
                 if [[ "$choice" == ".." ]]; then
                     current_path=$(dirname "$current_path")
                 elif [[ "$choice" == */ ]]; then
@@ -1048,15 +908,15 @@ file_explorer() {
                     file_actions "$current_path/$choice"
                 fi
                 ;;
-            3) # Delete pressed
+            3) 
                 if [[ -n "$choice" && "$choice" != ".." ]]; then
                     target="$current_path/$choice"
                     dialog --yesno "Delete PERMANENTLY?\n$target" 7 60
                     [ $? -eq 0 ] && rm -rf "$target"
                 fi
                 ;;
-            *) # ESC/Back pressed
-                return  # Return to main menu without refreshing
+            *) 
+                return
                 ;;
         esac
     done
@@ -1065,7 +925,7 @@ file_explorer() {
 # =========[ File Actions Dialog ]=========
 file_actions() {
     local file="$1"
-    
+
     while true; do
         action=$(dialog --clear \
             --backtitle "File Actions" \
@@ -1080,11 +940,11 @@ file_actions() {
             "Edit" "Edit with nano" \
             "Rename" "Change filename" \
             3>&1 1>&2 2>&3)
-            
+
         ret=$?
-        
+
         case $ret in
-            0) # Select pressed
+            0)
                 case "$action" in
                     "View") 
                         clear
@@ -1105,296 +965,18 @@ file_actions() {
                         ;;
                 esac
                 ;;
-            3) # Delete pressed
+            3)
                 dialog --yesno "Delete PERMANENTLY?\n$file" 7 60
                 [ $? -eq 0 ] && rm -f "$file" && return
                 ;;
-            *) # Back pressed
+            *) 
                 break
                 ;;
         esac
     done
 }
 
-# ====[ Dex2c Submenu ]=====
-dex2c_menu() {
-    while true; do
-        dex_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
-            --title "Dex2c Tools" \
-            --menu "Choose an option:" 15 50 4 \
-            1 "Check Dependencies" \
-            2 "Install Dex2c" \
-            3 "Remove Dex2c" \
-            4 "Return to MainMenu" 3>&1 1>&2 2>&3)
-
-        clear
-        case "$dex_choice" in
-            1) check_dex2c_deps ;;
-            2) install_dex2c ;;
-            3) remove_dex2c ;;
-            4) return ;;
-            *) echo "Invalid option" ;;
-        esac
-    done
-}
-
-# ====[ Silent Package Manager ]=====
-termux_pkg() {
-    case $1 in
-        install)
-            shift
-            for pkg in "$@"; do
-                if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-                    apt-get install -y -qq \
-                        -o Dpkg::Options::="--force-confdef" \
-                        -o Dpkg::Options::="--force-confold" \
-                        --no-install-recommends \
-                        "$pkg" >/dev/null 2>&1 || return 1
-                fi
-            done
-            ;;
-        update)
-            apt-get update -y -qq \
-                -o Dpkg::Options::="--force-confdef" \
-                -o Dpkg::Options::="--force-confold" >/dev/null 2>&1
-            ;;
-        upgrade)
-            apt-get upgrade -y -qq \
-                -o Dpkg::Options::="--force-confdef" \
-                -o Dpkg::Options::="--force-confold" >/dev/null 2>&1
-            ;;
-        *) return 1 ;;
-    esac
-}
-
-# ====[ Check Dependencies ]=====
-check_dex2c_deps() {
-    deps_missing=0
-    check_result="Dependency Check Results:\n\n"
-    
-    # Check commands
-    check_cmd() {
-        if command -v "$1" >/dev/null 2>&1; then
-            check_result+="✓ $1 installed\n"
-            return 0
-        else
-            check_result+="✗ $1 missing\n"
-            return 1
-        fi
-    }
-    
-    check_cmd git || deps_missing=1
-    check_cmd java || deps_missing=1
-    check_cmd make || deps_missing=1
-    check_cmd python || deps_missing=1
-    check_cmd unzip || deps_missing=1
-    check_cmd wget || deps_missing=1
-    
-    # Simplified check without directory paths
-    [ -d "$HOME/dex2c" ] || { check_result+="✗ Dex2c not installed\n"; deps_missing=1; }
-    [ -d "$HOME/ndk" ] || { check_result+="✗ NDK not installed\n"; deps_missing=1; }
-    
-    if [ $deps_missing -eq 0 ]; then
-        dialog --title "Dependency Check" --msgbox "${check_result}\nAll dependencies are satisfied." 12 50
-    else
-        dialog --title "Dependency Check" --yesno "${check_result}\n\nMissing dependencies found. Install now?" 12 50 && install_dex2c
-    fi
-}
-
-# ====[ Install Dex2c ]=====
-install_dex2c() {
-    (
-        echo "10"
-        echo "# Checking system requirements..."
-        
-        echo "20"
-        echo "# Updating package lists..."
-        termux_pkg update || { echo "Package update failed" >&2; exit 1; }
-        
-        echo "30"
-        echo "# Upgrading existing packages..."
-        termux_pkg upgrade || { echo "Package upgrade failed" >&2; exit 1; }
-        
-        echo "40"
-        echo "# Installing core dependencies..."
-        termux_pkg install clang curl git make openjdk-17 propt python unzip wget zip || { echo "Dependency installation failed" >&2; exit 1; }
-        
-        echo "50"
-        echo "# Preparing Dex2c environment..."
-        [ -d "$HOME/dex2c" ] && rm -rf "$HOME/dex2c"
-        
-        echo "60"
-        echo "# Cloning Dex2c repository..."
-        git clone -q https://github.com/RealCyberNomadic/dex2c "$HOME/dex2c" || { echo "Clone failed" >&2; exit 1; }
-        
-        echo "70"
-        echo "# Setting up Apktool..."
-        mkdir -p "$HOME/dex2c/tools"
-        wget -q https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar -O "$HOME/dex2c/tools/apktool.jar" || { echo "Apktool download failed" >&2; exit 1; }
-        
-        echo "80"
-        echo "# Installing NDK..."
-        [ -d "$HOME/ndk" ] && rm -rf "$HOME/ndk"
-        wget -q https://dl.google.com/android/repository/android-ndk-r26b-linux.zip -O "$HOME/ndk.zip" || { echo "NDK download failed" >&2; exit 1; }
-        unzip -q "$HOME/ndk.zip" -d "$HOME" || { echo "NDK extraction failed" >&2; exit 1; }
-        mv "$HOME/android-ndk-r26b" "$HOME/ndk"
-        rm "$HOME/ndk.zip"
-        
-        echo "90"
-        echo "# Configuring environment..."
-        grep -q 'export NDK=' "$HOME/.bashrc" || echo 'export NDK=$HOME/ndk' >> "$HOME/.bashrc"
-        grep -q 'export PATH=$NDK:$PATH' "$HOME/.bashrc" || echo 'export PATH=$NDK:$PATH' >> "$HOME/.bashrc"
-        
-        echo "100"
-        echo "# Finalizing installation..."
-        sleep 1
-    ) | dialog --title "Dex2c Installation" --gauge "Installing Dex2c..." 10 70 0
-
-    # Verify installation
-    if [ -d "$HOME/dex2c" ] && [ -d "$HOME/ndk" ]; then
-        dialog --msgbox "Dex2c installed successfully!\n\nLocation: $HOME/dex2c\nNDK: $HOME/ndk" 9 50
-    else
-        dialog --msgbox "Installation completed with possible errors.\nCheck $HOME/dex2c and $HOME/ndk exist." 9 50
-    fi
-}
-
-# ====[ Remove Dex2c ]=====
-remove_dex2c() {
-    dialog --yesno "WARNING: This will completely remove:\n\n- Dex2c and all components\n- NDK\n- Android SDK\n- Related packages\n\nContinue?" 12 50 || return
-
-    (
-        echo "20"
-        echo "# Removing Dex2c core..."
-        rm -rf "$HOME/dex2c"
-        
-        echo "30"
-        echo "# Removing NDK..."
-        rm -rf "$HOME/ndk"
-        
-        echo "40"
-        echo "# Removing Android SDK..."
-        rm -rf "$HOME/android-sdk"
-        
-        echo "50"
-        echo "# Uninstalling packages..."
-        apt-get remove -y -qq \
-            -o Dpkg::Options::="--force-confdef" \
-            -o Dpkg::Options::="--force-confold" \
-            --auto-remove \
-            android-sdk clang dex2c git java make ndk python unzip wget >/dev/null 2>&1
-        
-        echo "70"
-        echo "# Cleaning package cache..."
-        apt-get clean -y -qq >/dev/null 2>&1
-        
-        echo "80"
-        echo "# Updating environment..."
-        sed -i '/export ANDROID_SDK=\$HOME\/android-sdk/d' "$HOME/.bashrc"
-        sed -i '/export NDK=\$HOME\/ndk/d' "$HOME/.bashrc"
-        sed -i '/export PATH=\$NDK:\$PATH/d' "$HOME/.bashrc"
-        
-        echo "100"
-        echo "# Removal complete!"
-        sleep 1
-    ) | dialog --title "Dex2c Removal" --gauge "Cleaning system..." 10 70 0
-
-    dialog --msgbox "All Dex2c components and related packages were removed successfully." 7 50
-}
-
-# ====[ Check Dependencies ]=====
-check_dex2c_deps() {
-    missing_pkgs=0
-    check_result="Dependency Check:\n\n"
-    
-    # Check package function
-    check_pkg() {
-        if dpkg -s "$1" >/dev/null 2>&1; then
-            check_result+="✓ $1\n"
-        else
-            check_result+="✗ $1\n"
-            missing_pkgs=1
-        fi
-    }
-    
-    # Check directory function 
-    check_dir() {
-        [ -d "$1" ] && check_result+="✓ $2\n" || check_result+="✗ $2\n"
-    }
-    
-    # Check required packages 
-    check_pkg "clang"
-    check_pkg "git"
-    check_pkg "make"
-    check_pkg "openjdk-17"
-    check_pkg "python"
-    check_pkg "unzip"
-    check_pkg "wget"
-    
-    # Check components 
-    check_dir "$HOME/dex2c" "Dex2c"
-    check_dir "$HOME/ndk" "NDK"
-    
-    if [ $missing_pkgs -eq 0 ]; then
-        dialog --title "Dependencies" --msgbox "${check_result}\nAll packages are installed." 15 60
-    else
-        dialog --title "Missing Packages" --yesno "${check_result}\n\nInstall missing packages now?" 15 60 && {
-            (
-                echo "20"; echo "# Updating packages...";
-                pkg update -y >/dev/null 2>&1
-                
-                echo "50"; echo "# Installing missing packages...";
-                pkg install -y clang git make openjdk-17 python unzip wget >/dev/null 2>&1
-                
-                echo "100"; echo "# Done!";
-                sleep 1
-            ) | dialog --gauge "Installing packages..." 10 70 0
-        }
-    fi
-}
-
-# ====[ Remove Dex2c ]=====
-remove_dex2c() {
-    # List of packages to remove
-    PKG_LIST="clang git make openjdk-17 python unzip wget"
-    
-    dialog --yesno "WARNING: This will remove:\n\n- Dex2c files (~/dex2c)\n- NDK files (~/ndk)\n- Packages: $PKG_LIST\n\nContinue?" 13 50 || return
-
-    (
-        echo "10"
-        echo "# Removing Dex2c files..."
-        rm -rf "$HOME/dex2c"
-        
-        echo "25" 
-        echo "# Removing NDK files..."
-        rm -rf "$HOME/ndk"
-        
-        echo "40"
-        echo "# Removing packages..."
-        for pkg in $PKG_LIST; do
-            if dpkg -s "$pkg" >/dev/null 2>&1; then
-                apt-get remove -y --purge "$pkg" >/dev/null 2>&1
-            fi
-        done
-        
-        echo "70"
-        echo "# Cleaning up dependencies..."
-        apt-get autoremove -y >/dev/null 2>&1
-        apt-get clean >/dev/null 2>&1
-        
-        echo "85"
-        echo "# Updating environment..."
-        sed -i '/export NDK=\$HOME\/ndk/d' "$HOME/.bashrc"
-        sed -i '/export PATH=\$NDK:\$PATH/d' "$HOME/.bashrc"
-        
-        echo "100"
-        echo "# Uninstall complete!"
-        sleep 1
-    ) | dialog --title "Dex2c Removal" --gauge "Uninstalling..." 10 70 0
-
-    dialog --msgbox "Dex2c and all related components were successfully removed." 7 50
-}
-
-# ====[ Backup & Wipe Submenu ]=====
+# =========[ Backup & Wipe Submenu ]=========
 backup_wipe_menu() {
     while true; do
         sub_choice=$(dialog --clear --backtitle "Termux Setup Script v$SCRIPT_VERSION" \
@@ -1420,22 +1002,21 @@ backup_wipe_menu() {
                     echo -e "\n\033[1;31m[!] WARNING: This will COMPLETELY WIPE your Termux environment!\033[0m"
                     echo -e "\033[1;33mAll packages, configurations, and home files will be permanently deleted.\033[0m\n"
                     read -rp "Are you sure you want to continue? [Y/N/YES/NO]: " confirm_wipe
-                    
+
                     case "${confirm_wipe^^}" in
                         "Y"|"YES")
                             echo -e "\n\033[1;31mStarting wipe process...\033[0m"
                             echo -e "\033[1;33mRemoving all packages and files...\033[0m"
-                            
-                            # Wipe sequence with progress indication
+
                             echo "[1/3] Removing packages..."
                             pkg list-installed | cut -d/ -f1 | xargs pkg uninstall -y >/dev/null 2>&1
-                            
+
                             echo "[2/3] Cleaning home directory..."
                             rm -rf $HOME/* $HOME/.* >/dev/null 2>&1
-                            
+
                             echo "[3/3] Removing system files..."
                             rm -rf /data/data/com.termux/files/usr/* >/dev/null 2>&1
-                            
+
                             echo -e "\n\033[1;32mWipe completed successfully!\033[0m"
                             echo -e "\033[1;33mPress Enter to exit Termux (you'll need to restart it)...\033[0m"
                             read -r
