@@ -1,16 +1,10 @@
-The Termux Setup Script is designed to make setting up and configuring your Termux environment straightforward and hasslefree. Instead of manually installing packages or searching for complex instructions, this script provides an intuitive, menudriven interface that quickly prepares your environment with everything you need.
+# Termux Setup Script Overview
 
-All installations and configurations are neatly contained within your home directory, keeping your system clean and wellorganized. Additionally, the script automatically ensures that Termux has proper storage permissions configured, preventing common file access issues.
+The Termux Setup Script streamlines the process of configuring and preparing your Termux environment, eliminating the need for manual package installations or searching through complex setup guides. Its intuitive, menu-driven interface allows you to quickly and efficiently establish a fully functional environment with minimal effort.
 
-How to Use.
+All installations and configurations are contained within your home directory, keeping the system organized and clean. The script also automatically ensures that Termux has the necessary storage permissions, preventing common file access issues and ensuring a smooth, hassle-free setup experience.
 
-```bash
-pkg install git y && git clone https://github.com/RealCyberNomadic/TermuxSetupScript.git && cd TermuxSetupScript && chmod +x TermuxSetupScript.sh && bash ./TermuxSetupScript.sh
-```
 
-# Termux Setup Script Comprehensive Overview
-
-This script is a full-featured Termux management suite designed to simplify environment setup, Android app analysis, and system maintenance. It combines automation, safety, and customization into a single, user-friendly interface.
 
 # File Manager
 
