@@ -1,76 +1,60 @@
-# 🛠️ Termux Setup Script Documentation (Updated)
+# Termux Setup Script Comprehensive Overview
 
-Installation Instructions (AutoCopy)
+This script is a full-featured Termux management suite designed to simplify environment setup, Android app analysis, and system maintenance. It combines automation, safety, and customization into a single, user-friendly interface.
 
-To install the Termux Setup Script, simply copy the command below and paste it directly into your Termux terminal. This command automatically installs Git, clones the repository, sets permissions, and starts the script.
+# File Manager
 
-```bash
-pkg install git y && git clone https://github.com/RealCyberNomadic/TermuxSetupScript.git && cd TermuxSetupScript && chmod +x TermuxSetupScript.sh && bash ./TermuxSetupScript.sh
-```
-
-The Termux Setup Script is designed to make setting up and configuring your Termux environment straightforward and hasslefree. Instead of manually installing packages or searching for complex instructions, this script provides an intuitive, menudriven interface that quickly prepares your environment with everything you need.
-
-All installations and configurations are neatly contained within your home directory, keeping your system clean and wellorganized. Additionally, the script automatically ensures that Termux has proper storage permissions configured, preventing common file access issues.
-
-# Key Features
-
-* Automated Package Installation
-   Quickly installs all essential tools like Git, Curl, Python, Node.js, and more so you can dive right into your work without delay.
-
-* Blutter Manager Submenu (New)
-   A full submenu dedicated to managing the Blutter reverse engineering toolset. This menu, now called Blutter Manager, handles the installation, update, and removal of all Blutter tools.
-
-* Backup & Wipe Tools
-   Enables you to create backups of your entire Termux environment and restore them easily. Also includes a wipe option for fresh starts, with safety checks to prevent accidental data loss.
-
-* Zsh Addons Installer
-   Helps enhance your terminal experience by installing popular Zsh plugins and themes effortlessly.
-
-* MOTD Configuration
-   Customize your Termux Message of the Day with personalized styles or system information to make your terminal feel like your own.
-
-* Python Packages & Plugins
-   Provides a curated selection of Python libraries and plugins optimized for scripting, development, and automation within Termux.
-
-* Radare2 Suite
-   Facilitates the installation and update of the Radare2 reverse engineering framework and related tools.
-
-* Script Refresh & Update
-   Allows you to update or refresh the setup script at any time without reinstalling, ensuring you always have the latest features.
-
-* File Explorer Interface
-   Includes a userfriendly folderstyle navigation UI to simplify file browsing and management without relying solely on commandline commands.
-
-* Clean Exit Option
-   Lets you exit the script safely at any point, preserving your environment and session state.
-
-Suites Included
+* Navigate your Termux filesystem with ease using a structured menu interface.
+* View, edit, and rename files directly from the terminal.
+* Delete files or directories safely with confirmation prompts.
+* Supports intuitive folder traversal, including moving up directories and opening nested folders.
+* Ideal for managing scripts, configuration files, or downloaded content without leaving Termux.
 
 # Blutter Suite
-A comprehensive toolkit focused on reverse engineering and APK modification, featuring:
 
-* APKEditor for editing APK files, including resources and manifests. A key update ensures that if you remove an APKs, XAPK file using a file Manager APKEditor will properly detect its absence and will not keep you stuck in the editor.
-
-* Hermes tools for decompiling and disassembling Hermes bytecode.
-* Full installation, update, and removal management via the Blutter Manager submenu.
-* Automated processing for ARM64 binaries.
+* A powerful toolkit for reverse engineering and modifying Android apps.
+* Automates APK/XAPK handling, including merging, decompiling, recompiling, refactoring, and protection of applications.
+* Hermes integration allows decompiling and disassembly of Flutter binaries for advanced analysis.
+* Includes Blutter Manager to handle installation, updates, or complete removal of the Blutter environment.
+* Streamlines ARM64 binary processing for security research or development purposes.
 
 # Radare2 Suite
-A powerful set of tools for binary analysis and reverse engineering, including:
 
-* Assemblylevel disassembly of Android bundles.
-* Detailed disassembly and analysis capabilities.
-* Installation support for Hermes Bytecode Tool.
-* Installation and updating of the Radare2 framework.
+* Provides a professional reverse engineering environment within Termux.
+* Enables assembly and disassembly of binary files, including bundle files common in Android apps.
+* Simplifies installation and configuration of Radare2 and its ecosystem, including HBCTool and other analysis utilities.
+* Ideal for researchers, security analysts, and developers who need a portable and powerful binary analysis setup.
 
-## Why I Created This Script
+# Backup Tools
 
-As an active member of various Termux communities, I noticed many users struggled to set up clean, functional Termux environments or to install complex tools like Blutter and Radare2. The process was often confusing,timeconsuming, and frustrating especially for beginners.
+* Full backup functionality for the Termux environment, capturing installed packages and home directory files.
+* Restore functionality allows quick recovery of a previously saved environment.
+* Includes a complete wipe option to safely remove all packages, configuration files, and user data, with multiple safeguards to prevent accidental deletion.
+* Perfect for testing, experimentation, or maintaining multiple configurations.
 
-This script was created to simplify all of that. It’s meant to be a onestop solution that guides users through setup and customization with ease, saving time and minimizing hassle.
-If you’ve already customized your Termux setup extensively, this script might not be necessary for you. But for anyone starting fresh, it’s a great way to get up and running quickly and confidently.
+# MOTD (Message of the Day) Settings
 
-A Quick Note
-What began as a small Python script to speed up my own installations evolved into this comprehensive tool after much testing and refinement. Though I only worked on it parttime, I’m proud of the result and hope it helps many users get their Termux environments ready faster and with less frustration.
+* Customize the terminal’s greeting and informational message.
+* Provides a simple interface for managing MOTD content, allowing personalization and visual improvement of the shell environment.
+* Enhances daily Termux usage with reminders, status updates, or aesthetic improvements.
 
-## New Features to be Added Coming Soon.
+# Zsh Add-ons Installation
+
+* Installs Oh My Zsh for a more powerful and user-friendly shell experience.
+* Adds popular plugins such as command autosuggestions and syntax highlighting.
+* Streamlines the Termux workflow for efficiency and productivity.
+* Automatically configures the shell environment for immediate use.
+
+# Python Packages and Developer Tools
+
+* Automates installation of essential development tools and Python packages.
+* Covers compilers, editors, multimedia utilities, networking tools, and more.
+* Prepares Termux as a fully-featured development environment suitable for scripting, reverse engineering, or general coding.
+* Reduces setup time and ensures consistency across multiple devices.
+
+# Script Update and Refresh
+
+* Checks for updates online and automatically applies them.
+* Safely refreshes the running script without losing session context.
+* Ensures users always have the latest features, improvements, and bug fixes.
+* Maintains a smooth and reliable workflow for continuous Termux usage.
