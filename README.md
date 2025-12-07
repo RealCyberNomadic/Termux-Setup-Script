@@ -6,10 +6,72 @@ Installation Instructions (Auto-Copy)
 
 To install the Termux Setup Script, simply copy the command below and paste it directly into your Termux terminal. This command automatically installs Git, clones the repository, sets permissions, and starts the script.
 
-```
-pkg install git -y && git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git && cd Termux-Setup-Script && chmod +x Termux-Setup-Script.sh && bash ./Termux-Setup-Script.sh
-```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Copy Termux Command</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+    }
+    .command-container {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        max-width: 800px;
+    }
+    pre {
+        background-color: #f6f8fa;
+        padding: 15px 50px 15px 15px;
+        border-radius: 6px;
+        overflow-x: auto;
+        font-family: monospace;
+        font-size: 14px;
+        margin: 0;
+    }
+    button.copy-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 5px 10px;
+        font-size: 12px;
+        background-color: #2ea44f;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    button.copy-btn:hover {
+        background-color: #2c974b;
+    }
+</style>
+</head>
+<body>
 
+<h2>Termux Setup Command</h2>
+<div class="command-container">
+    <pre id="command">pkg install git -y && git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git && cd Termux-Setup-Script && chmod +x Termux-Setup-Script.sh && bash ./Termux-Setup-Script.sh</pre>
+    <button class="copy-btn" onclick="copyCommand()">Copy</button>
+</div>
+
+<script>
+function copyCommand() {
+    const commandText = document.getElementById('command').innerText;
+    navigator.clipboard.writeText(commandText).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        const originalText = btn.innerText;
+        btn.innerText = "Copied!";
+        setTimeout(() => btn.innerText = originalText, 1500);
+    }).catch(err => {
+        console.error("Failed to copy: ", err);
+    });
+}
+</script>
+
+</body>
+</html>
 Overview
 
 The Termux Setup Script is designed to make setting up and configuring your Termux environment straightforward and hassle-free. Instead of manually installing packages or searching for complex instructions, this script provides an intuitive, menu-driven interface that quickly prepares your environment with everything you need.
