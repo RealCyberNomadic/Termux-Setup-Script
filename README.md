@@ -4,8 +4,10 @@ The Termux Setup Script streamlines the process of configuring and preparing you
 
 All installations and configurations are contained within your home directory, keeping the system organized and clean. The script also automatically ensures that Termux has the necessary storage permissions, preventing common file access issues and ensuring a smooth, hassle-free setup experience.
 
-``bash
-pkg install git y && git clone https://github.com/RealCyberNomadic/TermuxSetupScript.git && cd TermuxSetupScript && chmod +x TermuxSetupScript.sh && bash ./TermuxSetupScript.sh
+[![Copy to Clipboard](https://img.shields.io/badge/Copy-Command-blue?style=for-the-badge)](javascript:void(0))  
+
+```bash
+pkg install git -y && git clone https://github.com/RealCyberNomadic/TermuxSetupScript.git && cd TermuxSetupScript && chmod +x TermuxSetupScript.sh && bash ./TermuxSetupScript.sh
 
 # File Manager
 
