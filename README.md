@@ -1,3 +1,12 @@
+The Termux Setup Script is designed to make setting up and configuring your Termux environment straightforward and hasslefree. Instead of manually installing packages or searching for complex instructions, this script provides an intuitive, menudriven interface that quickly prepares your environment with everything you need.
+
+All installations and configurations are neatly contained within your home directory, keeping your system clean and wellorganized. Additionally, the script automatically ensures that Termux has proper storage permissions configured, preventing common file access issues.
+
+How to Use.
+
+```bash
+pkg install git y && git clone https://github.com/RealCyberNomadic/TermuxSetupScript.git && cd TermuxSetupScript && chmod +x TermuxSetupScript.sh && bash ./TermuxSetupScript.sh
+
 # Termux Setup Script Comprehensive Overview
 
 This script is a full-featured Termux management suite designed to simplify environment setup, Android app analysis, and system maintenance. It combines automation, safety, and customization into a single, user-friendly interface.
@@ -58,3 +67,15 @@ This script is a full-featured Termux management suite designed to simplify envi
 * Safely refreshes the running script without losing session context.
 * Ensures users always have the latest features, improvements, and bug fixes.
 * Maintains a smooth and reliable workflow for continuous Termux usage.
+
+# Why I Created This Script
+
+As an active member of various Termux communities, I noticed many users struggled to set up clean, functional Termux environments or to install complex tools like Blutter and Radare2. The process was often confusing,timeconsuming, and frustrating especially for beginners.
+
+This script was created to simplify all of that. It’s meant to be a onestop solution that guides users through setup and customization with ease, saving time and minimizing hassle.
+If you’ve already customized your Termux setup extensively, this script might not be necessary for you. But for anyone starting fresh, it’s a great way to get up and running quickly and confidently.
+
+A Quick Note
+What began as a small Python script to speed up my own installations evolved into this comprehensive tool after much testing and refinement. Though I only worked on it parttime, I’m proud of the result and hope it helps many users get their Termux environments ready faster and with less frustration.
+
+# New Features to be Added Coming Soon.
