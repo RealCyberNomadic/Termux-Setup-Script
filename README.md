@@ -1,19 +1,8 @@
-Here is the revised documentation, incorporating the auto-copy installation command, removing the references to Dex2c, and updating the information regarding APKEditor and the new Blutter Manager submenu.
-
 # 🛠️ Termux Setup Script Documentation (Updated)
 
 Installation Instructions (Auto-Copy)
 
 To install the Termux Setup Script, simply copy the command below and paste it directly into your Termux terminal. This command automatically installs Git, clones the repository, sets permissions, and starts the script.
-
-# Termux Setup Script
-
-Automate the setup of Termux with all required scripts and tools.
-
-
-## Quick Start
-
-Run the following command in your Termux terminal to install Git, clone the repository, and launch the setup script:
 
 ```bash
 pkg install git -y && git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git && cd Termux-Setup-Script && chmod +x Termux-Setup-Script.sh && bash ./Termux-Setup-Script.sh
@@ -23,7 +12,8 @@ The Termux Setup Script is designed to make setting up and configuring your Term
 
 All installations and configurations are neatly contained within your home directory, keeping your system clean and well-organized. Additionally, the script automatically ensures that Termux has proper storage permissions configured, preventing common file access issues.
 
-Key Features
+# Key Features
+
  * Automated Package Installation
    Quickly installs all essential tools like Git, Curl, Python, Node.js, and more — so you can dive right into your work without delay.
 
@@ -55,7 +45,8 @@ Key Features
    Lets you exit the script safely at any point, preserving your environment and session state.
 
 Suites Included
-Blutter Suite
+
+# Blutter Suite
 A comprehensive toolkit focused on reverse engineering and APK modification, featuring:
  * APKEditor for editing APK files, including resources and manifests. A key update ensures that if you remove an APKs, XAPK file using a file Manager APKEditor will properly detect its absence and will not keep you stuck in the editor.
 
@@ -65,7 +56,7 @@ A comprehensive toolkit focused on reverse engineering and APK modification, fea
 
  * Automated processing for ARM64 binaries.
 
-Radare2 Suite
+# Radare2 Suite
 A powerful set of tools for binary analysis and reverse engineering, including:
  * Assembly-level disassembly of Android bundles.
  * Detailed disassembly and analysis capabilities.
@@ -82,4 +73,4 @@ If you’ve already customized your Termux setup extensively, this script might 
 A Quick Note
 What began as a small Python script to speed up my own installations evolved into this comprehensive tool after much testing and refinement. Though I only worked on it part-time, I’m proud of the result and hope it helps many users get their Termux environments ready faster and with less frustration.
 
-New Features to be Added Coming Soon.
+## New Features to be Added Coming Soon.
