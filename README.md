@@ -6,6 +6,7 @@ How to Use.
 
 ```bash
 pkg install git y && git clone https://github.com/RealCyberNomadic/TermuxSetupScript.git && cd TermuxSetupScript && chmod +x TermuxSetupScript.sh && bash ./TermuxSetupScript.sh
+```
 
 # Termux Setup Script Comprehensive Overview
 
