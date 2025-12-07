@@ -14,60 +14,58 @@ All installations and configurations are neatly contained within your home direc
 
 # Key Features
 
- * Automated Package Installation
+* Automated Package Installation
    Quickly installs all essential tools like Git, Curl, Python, Node.js, and more so you can dive right into your work without delay.
 
- * Blutter Manager Submenu (New)
+* Blutter Manager Submenu (New)
    A full submenu dedicated to managing the Blutter reverse engineering toolset. This menu, now called Blutter Manager, handles the installation, update, and removal of all Blutter tools.
 
- * Backup & Wipe Tools
+* Backup & Wipe Tools
    Enables you to create backups of your entire Termux environment and restore them easily. Also includes a wipe option for fresh starts, with safety checks to prevent accidental data loss.
 
- * Zsh Addons Installer
+* Zsh Addons Installer
    Helps enhance your terminal experience by installing popular Zsh plugins and themes effortlessly.
 
- * MOTD Configuration
+* MOTD Configuration
    Customize your Termux Message of the Day with personalized styles or system information to make your terminal feel like your own.
 
- * Python Packages & Plugins
+* Python Packages & Plugins
    Provides a curated selection of Python libraries and plugins optimized for scripting, development, and automation within Termux.
 
- * Radare2 Suite
+* Radare2 Suite
    Facilitates the installation and update of the Radare2 reverse engineering framework and related tools.
 
- * Script Refresh & Update
+* Script Refresh & Update
    Allows you to update or refresh the setup script at any time without reinstalling, ensuring you always have the latest features.
 
- * File Explorer Interface
+* File Explorer Interface
    Includes a userfriendly folderstyle navigation UI to simplify file browsing and management without relying solely on commandline commands.
 
- * Clean Exit Option
+* Clean Exit Option
    Lets you exit the script safely at any point, preserving your environment and session state.
 
 Suites Included
 
 # Blutter Suite
 A comprehensive toolkit focused on reverse engineering and APK modification, featuring:
- * APKEditor for editing APK files, including resources and manifests. A key update ensures that if you remove an APKs, XAPK file using a file Manager APKEditor will properly detect its absence and will not keep you stuck in the editor.
 
- * Hermes tools for decompiling and disassembling Hermes bytecode.
+* APKEditor for editing APK files, including resources and manifests. A key update ensures that if you remove an APKs, XAPK file using a file Manager APKEditor will properly detect its absence and will not keep you stuck in the editor.
 
- * Full installation, update, and removal management via the Blutter Manager submenu.
-
- * Automated processing for ARM64 binaries.
+* Hermes tools for decompiling and disassembling Hermes bytecode.
+* Full installation, update, and removal management via the Blutter Manager submenu.
+* Automated processing for ARM64 binaries.
 
 # Radare2 Suite
 A powerful set of tools for binary analysis and reverse engineering, including:
- * Assemblylevel disassembly of Android bundles.
- * Detailed disassembly and analysis capabilities.
- * Installation support for Hermes Bytecode Tool (HBCTOOL).
- * APK signing and verification with KeySigner.
- * Installation and updating of the Radare2 framework.
- * Signature detection and analysis via SigTool.
+
+* Assemblylevel disassembly of Android bundles.
+* Detailed disassembly and analysis capabilities.
+* Installation support for Hermes Bytecode Tool.
+* Installation and updating of the Radare2 framework.
 
 ## Why I Created This Script
 
-As an active member of various Termux communities, I noticed many users struggled to set up clean, functional Termux environments or to install complex tools like Blutter and Radare2. The process was often confusing, timeconsuming, and frustrating—especially for beginners.
+As an active member of various Termux communities, I noticed many users struggled to set up clean, functional Termux environments or to install complex tools like Blutter and Radare2. The process was often confusing,timeconsuming, and frustrating especially for beginners.
 
 This script was created to simplify all of that. It’s meant to be a onestop solution that guides users through setup and customization with ease, saving time and minimizing hassle.
 If you’ve already customized your Termux setup extensively, this script might not be necessary for you. But for anyone starting fresh, it’s a great way to get up and running quickly and confidently.
