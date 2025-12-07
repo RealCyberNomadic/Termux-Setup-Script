@@ -6,10 +6,9 @@ Installation Instructions (Auto-Copy)
 
 To install the Termux Setup Script, simply copy the command below and paste it directly into your Termux terminal. This command automatically installs Git, clones the repository, sets permissions, and starts the script.
 
-> Copy & Paste In Termux Enjoy
-> pkg install git -y && git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git && cd Termux-Setup-Script && chmod +x Termux-Setup-Script.sh && bash ./Termux-Setup-Script.sh
-> 
-> 
+```
+pkg install git -y && git clone https://github.com/RealCyberNomadic/Termux-Setup-Script.git && cd Termux-Setup-Script && chmod +x Termux-Setup-Script.sh && bash ./Termux-Setup-Script.sh
+```
 
 Overview
 
