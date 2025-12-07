@@ -8,6 +8,7 @@ All installations and configurations are contained within your home directory, k
 
 ```bash
 pkg install git -y && git clone https://github.com/RealCyberNomadic/TermuxSetupScript.git && cd TermuxSetupScript && chmod +x TermuxSetupScript.sh && bash ./TermuxSetupScript.sh
+```
 
 # File Manager
 
