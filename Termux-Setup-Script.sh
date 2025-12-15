@@ -494,12 +494,12 @@ blutter_suite() {
                 apk_editor_loop() {
                     # Ensure APKEditor exists
                     if [ ! -f "/storage/emulated/0/Shite/APKEditor.jar" ]; then
-                        echo -e "${BLUE}[*] Downloading APKEditor v1.4.5...${RESET}"
+                        echo -e "${BLUE}[*] Downloading APKEditor v1.4.6...${RESET}"
                         mkdir -p "$HOME/temp_downloads"
                         cd "$HOME/temp_downloads"
-                        if wget -q https://github.com/REandroid/APKEditor/releases/download/V1.4.5/APKEditor-1.4.5.jar; then
+                        if wget -q https://github.com/REandroid/APKEditor/releases/download/V1.4.6/APKEditor-1.4.6.jar; then
                             mkdir -p /storage/emulated/0/Shite
-                            mv APKEditor-1.4.5.jar /storage/emulated/0/Shite/APKEditor.jar
+                            mv APKEditor-1.4.6.jar /storage/emulated/0/Shite/APKEditor.jar
                         else
                             echo -e "${RED}[!] Download failed${RESET}"
                             cd "$HOME" && rm -rf "$HOME/temp_downloads"
