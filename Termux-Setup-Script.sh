@@ -2,7 +2,8 @@
 
 # Script Configuration
 SCRIPT_URL="https://raw.githubusercontent.com/RealCyberNomadic/Termux-Setup-Script/main/Termux-Setup-Script.sh"
-SCRIPT_VERSION="2.2.7"
+SCRIPT_VERSION="2.2.6"
+SCRIPT_NAME="$(basename "$0")"  # Store script name reliably
 
 # ====[ Auto Update Function ]====
 check_and_update() {
@@ -14,37 +15,72 @@ check_and_update() {
         return
     fi
 
-    # Fetch the latest version from GitHub
-    LATEST_VERSION=$(curl -s "$SCRIPT_URL" | grep -o 'SCRIPT_VERSION="[0-9.]*"' | head -1 | cut -d'"' -f2)
+    # Get script's actual path
+    SCRIPT_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+    TEMP_FILE="/data/data/com.termux/files/home/${SCRIPT_NAME}.tmp"
 
-    if [ -z "$LATEST_VERSION" ]; then
-        echo -e "\033[1;33m[!] Could not check for updates. Continuing with current version.\033[0m"
+    # Fetch the latest version from GitHub
+    # More robust grep pattern that handles whitespace
+    REMOTE_CONTENT=$(curl -s --max-time 30 "$SCRIPT_URL")
+    
+    if [ $? -ne 0 ] || [ -z "$REMOTE_CONTENT" ]; then
+        echo -e "\033[1;33m[!] Could not connect to GitHub. Continuing with current version.\033[0m"
         return
     fi
 
+    # Extract version more reliably
+    LATEST_VERSION=$(echo "$REMOTE_CONTENT" | grep -m1 '^SCRIPT_VERSION=' | head -1 | sed 's/.*SCRIPT_VERSION="*\$[^"*]*\$"*/\1/')
+
+    if [ -z "$LATEST_VERSION" ]; then
+        echo -e "\033[1;33m[!] Could not parse version from remote. Continuing.\033[0m"
+        return
+    fi
+
+    echo -e "\033[1;34m[~] Current: $SCRIPT_VERSION | Remote: $LATEST_VERSION\033[0m"
+
     if [ "$LATEST_VERSION" != "$SCRIPT_VERSION" ]; then
-        echo -e "\033[1;32m[+] Update found! Current: $SCRIPT_VERSION, Latest: $LATEST_VERSION\033[0m"
+        echo -e "\033[1;32m[+] Update found!\033[0m"
         echo -e "\033[1;34m[~] Downloading update...\033[0m"
 
         # Download the updated script
-        curl -s "$SCRIPT_URL" -o "$0.tmp"
+        if ! curl -s --max-time 60 -o "$TEMP_FILE" "$SCRIPT_URL"; then
+            echo -e "\033[1;31m[!] Download failed. Continuing with current version.\033[0m"
+            rm -f "$TEMP_FILE" 2>/dev/null
+            return
+        fi
 
-        if [ -f "$0.tmp" ] && [ -s "$0.tmp" ]; then
-            # Make it executable and replace current script
-            chmod +x "$0.tmp"
-            mv "$0.tmp" "$0"
-            echo -e "\033[1;32m[+] Update installed! Restarting script...\033[0m"
-
-            # Restart the script with the update
-            exec "$0"
+        if [ -f "$TEMP_FILE" ] && [ -s "$TEMP_FILE" ]; then
+            # Verify it's actually a shell script
+            if ! head -1 "$TEMP_FILE" | grep -q '^#!'; then
+                echo -e "\033[1;31m[!] Downloaded file is not a valid script.\033[0m"
+                rm -f "$TEMP_FILE"
+                return
+            fi
+            
+            # Make it executable
+            chmod +x "$TEMP_FILE"
+            
+            # Replace current script
+            cp "$TEMP_FILE" "$SCRIPT_PATH"
+            rm -f "$TEMP_FILE"
+            
+            echo -e "\033[1;32m[+] Update installed! Restarting...\033[0m"
+            
+            # Restart with the actual script path
+            exec "$SCRIPT_PATH" "$@"
         else
-            echo -e "\033[1;31m[!] Failed to download update. Continuing with current version.\033[0m"
-            rm -f "$0.tmp" 2>/dev/null
+            echo -e "\033[1;31m[!] Failed to download update.\033[0m"
+            rm -f "$TEMP_FILE" 2>/dev/null
         fi
     else
         echo -e "\033[1;32m[✓] You are running the latest version ($SCRIPT_VERSION)\033[0m"
     fi
 }
+
+# Optional: Force update flag
+if [ "$1" = "--force-update" ] || [ "$1" = "-f" ]; then
+    check_and_update
+fi
 
 # ====[ Utility Functions ]====
 check_termux_storage() {
